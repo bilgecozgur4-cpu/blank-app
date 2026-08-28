@@ -1,0 +1,263 @@
+--- a/index.html
++++ b/index.html
+@@ -26,7 +26,7 @@
+         <span class="status-dot"></span>
+         <span>Yerel sistem aktif</span>
+       </div>
+-      <button id="quickActionBtn" class="ghost-btn">+ Hızlı Kayıt</button>
++      <button id="quickActionBtn" class="ghost-btn">＋ Veri Gir</button>
+       <button id="menuBtn" class="icon-btn mobile-only" aria-label="Menü">☰</button>
+       <div class="profile-chip">
+         <span class="profile-initial">Y</span>
+@@ -88,6 +88,23 @@
+         </div>
+ 
+         <div id="kpiGrid" class="kpi-grid"></div>
++
++        <article class="panel quick-entry-panel">
++          <div class="panel-head quick-entry-head">
++            <div><span class="eyebrow">HIZLI VERİ GİRİŞİ</span><h2>Bugünün kaydını ekle</h2></div>
++            <span class="muted-text">Tek dokunuşla forma geç</span>
++          </div>
++          <div class="quick-entry-grid">
++            <button class="quick-entry-card" data-quick-module="milk"><span class="quick-icon">🥛</span><span><strong>Süt</strong><small>Günlük üretim</small></span></button>
++            <button class="quick-entry-card" data-quick-module="finance" data-quick-type="Gider"><span class="quick-icon">↘</span><span><strong>Gider</strong><small>Masraf kaydı</small></span></button>
++            <button class="quick-entry-card" data-quick-module="finance" data-quick-type="Gelir"><span class="quick-icon">↗</span><span><strong>Gelir</strong><small>Tahsilat / gelir</small></span></button>
++            <button class="quick-entry-card" data-quick-module="health"><span class="quick-icon">✚</span><span><strong>Sağlık</strong><small>Hayvan takibi</small></span></button>
++            <button class="quick-entry-card" data-quick-module="feed"><span class="quick-icon">◒</span><span><strong>Yem</strong><small>Rasyon / tüketim</small></span></button>
++            <button class="quick-entry-card" data-quick-module="stock"><span class="quick-icon">▣</span><span><strong>Stok</strong><small>Giriş / çıkış</small></span></button>
++            <button class="quick-entry-card" data-quick-module="sales"><span class="quick-icon">₺</span><span><strong>Satış</strong><small>Süt / hayvan / ürün</small></span></button>
++            <button class="quick-entry-card" data-quick-module="animals"><span class="quick-icon">＋</span><span><strong>Hayvan</strong><small>Sürüye ekle</small></span></button>
++          </div>
++        </article>
+ 
+         <div class="dashboard-grid">
+           <article class="panel executive-panel">
+@@ -385,6 +402,7 @@
+     </div>
+   </div>
+ 
++  <button id="mobileFab" class="mobile-fab" aria-label="Yeni kayıt">＋</button>
+   <div id="toast" class="toast hidden"></div>
+ </div>
+ 
+--- a/assets/styles.css
++++ b/assets/styles.css
+@@ -206,3 +206,89 @@
+ .report-brand-panel>div strong{color:var(--navy);font-size:15px}
+ .report-brand-panel>div span{color:var(--muted);font-size:12px;margin-top:4px}
+ @media(max-width:650px){.report-brand-panel{flex-direction:column;align-items:flex-start}.report-brand-logo{width:100%;max-width:360px}}
++
++
++/* ===== V6 MOBILE-FIRST DATA ENTRY ===== */
++html{-webkit-text-size-adjust:100%}
++body.modal-open{overflow:hidden}
++.quick-entry-panel{margin-bottom:14px;padding:14px}
++.quick-entry-head{margin-bottom:10px}
++.quick-entry-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px}
++.quick-entry-card{border:1px solid var(--line);background:linear-gradient(180deg,#fff,#fafbfd);border-radius:14px;padding:12px;text-align:left;display:flex;align-items:center;gap:10px;min-height:68px;color:var(--text);box-shadow:0 3px 12px rgba(18,32,51,.04)}
++.quick-entry-card:active{transform:scale(.985);background:var(--blue-soft)}
++.quick-entry-card>span:last-child{min-width:0}
++.quick-entry-card strong,.quick-entry-card small{display:block}
++.quick-entry-card strong{color:var(--navy);font-size:13px}
++.quick-entry-card small{color:var(--muted);font-size:10px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
++.quick-icon{width:34px;height:34px;flex:0 0 34px;border-radius:11px;background:var(--blue-soft);display:grid;place-items:center;color:var(--navy);font-weight:900;font-size:17px}
++.mobile-record-list{display:none}
++.record-mobile-card{border:1px solid var(--line);border-radius:14px;padding:13px;background:#fff;margin-bottom:10px;box-shadow:0 4px 16px rgba(18,32,51,.05)}
++.record-mobile-title{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:9px}
++.record-mobile-title strong{color:var(--navy);font-size:14px}
++.record-mobile-fields{display:grid;grid-template-columns:1fr 1fr;gap:8px}
++.record-mobile-field{background:var(--surface-soft);border-radius:9px;padding:8px;min-width:0}
++.record-mobile-field span,.record-mobile-field b{display:block;overflow:hidden;text-overflow:ellipsis}
++.record-mobile-field span{color:var(--muted);font-size:9px;text-transform:uppercase;letter-spacing:.35px}
++.record-mobile-field b{color:var(--text);font-size:12px;margin-top:2px;white-space:nowrap}
++.record-mobile-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
++.record-mobile-actions .action-btn{margin:0;min-height:42px;font-weight:800}
++.mobile-fab{display:none;position:fixed;right:18px;bottom:calc(18px + env(safe-area-inset-bottom));z-index:105;width:58px;height:58px;border:0;border-radius:18px;background:var(--navy);color:#fff;font-size:28px;box-shadow:0 12px 34px rgba(18,32,51,.3)}
++.form-hint{grid-column:1/-1;margin:-2px 0 2px;color:var(--muted);font-size:11px}
++.form-grid label.required-field{color:var(--navy);font-weight:700}
++.form-grid label.required-field::after{content:"Zorunlu";justify-self:start;font-size:9px;color:var(--bronze);font-weight:800;margin-top:-4px}
++.form-actions{position:sticky;bottom:0;background:#fff;border-top:1px solid var(--line);padding-top:10px;padding-bottom:max(0px,env(safe-area-inset-bottom));z-index:3}
++.form-actions button{min-height:46px}
++
++@media(max-width:900px){
++  .quick-entry-grid{grid-template-columns:repeat(4,minmax(0,1fr))}
++  .panel{border-radius:14px;padding:14px}
++  .page-head{margin-bottom:14px}
++}
++@media(max-width:650px){
++  body{font-size:14px}
++  .topbar{height:62px;padding:8px 10px;gap:8px}
++  .workspace{min-height:calc(100vh - 62px)}
++  .sidebar{top:62px;height:calc(100vh - 62px)}
++  .brand-logo,.brand-logo-img img{width:40px;height:40px}
++  .brand-copy strong{font-size:13px}.brand-copy span{font-size:10px}
++  .topbar-actions{gap:5px}.ghost-btn{padding:9px 10px;font-size:12px;min-height:40px}
++  .main{padding:11px 10px 86px}
++  .page-head{gap:9px}.page-head h1{font-size:21px;line-height:1.2}.page-head p{font-size:12px;line-height:1.45}
++  .page-head .head-actions{width:100%}.page-head .head-actions>*{flex:1;text-align:center}
++  .kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:10px}
++  .kpi-card{padding:11px;border-radius:13px;min-height:92px}.kpi-card small{font-size:10px}.kpi-card strong{font-size:19px;line-height:1.2}.kpi-card em{font-size:10px}
++  .mini-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
++  .mini-kpi{padding:10px}.mini-kpi strong{font-size:18px}
++  .quick-entry-panel{padding:11px;margin-bottom:10px}.quick-entry-head .muted-text{display:none}
++  .quick-entry-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
++  .quick-entry-card{min-height:66px;padding:10px 9px;gap:8px;border-radius:12px}.quick-icon{width:32px;height:32px;flex-basis:32px}
++  .dashboard-grid{gap:10px;margin-bottom:10px}.panel{padding:12px;border-radius:13px;box-shadow:0 5px 18px rgba(18,32,51,.055)}
++  .panel-head{margin-bottom:9px}.panel-head h2{font-size:15px}
++  .recommendation{padding:9px}.action-card,.alert-card,.approval-card,.task-card,.decision-card{padding:10px}
++  .agent-grid{grid-template-columns:1fr}.agent-card{padding:12px}
++  .agent-strip{margin-inline:-2px}.agent-chip{min-width:152px}
++  .record-toolbar{padding:11px;gap:9px}.toolbar-actions{display:grid!important;grid-template-columns:1fr 1fr;gap:7px;width:100%}.toolbar-actions input{grid-column:1/-1}.toolbar-actions button{width:100%;min-height:44px}
++  .desktop-record-table{display:none}.mobile-record-list{display:block}
++  .table-wrap{overflow:visible}
++  .modal-backdrop{align-items:stretch;padding:0;background:rgba(6,12,22,.72)}
++  .modal{width:100%;height:100dvh;max-height:none;border-radius:0;display:flex;flex-direction:column;overflow:hidden}
++  .modal-head{padding:11px 13px;padding-top:max(11px,env(safe-area-inset-top));flex:0 0 auto}.modal-head h2{font-size:17px}
++  .form-grid{display:flex;flex-direction:column;gap:10px;padding:12px 12px 0;overflow:auto;overscroll-behavior:contain;flex:1}
++  .form-grid label{font-size:12px;gap:6px;flex:0 0 auto}
++  input,select,textarea{font-size:16px!important;min-height:48px;border-radius:11px;padding:11px 12px}
++  textarea{min-height:96px}
++  .form-actions{display:grid;grid-template-columns:1fr 1.35fr;gap:8px;margin:0 -12px;padding:10px 12px calc(10px + env(safe-area-inset-bottom));flex:0 0 auto}
++  .form-actions button{min-height:50px;font-size:14px}
++  .toast{left:10px;right:10px;bottom:calc(82px + env(safe-area-inset-bottom));text-align:center}
++  .mobile-fab{display:block}
++  .chart-wrap{min-height:180px}.chart-wrap svg{height:180px}
++  .row-top{gap:7px}.badge{font-size:9px;padding:4px 7px}
++  .audit-item{grid-template-columns:1fr;gap:3px}
++  .progress-row{grid-template-columns:92px 1fr 38px;gap:7px;font-size:10px}
++}
++@media(max-width:380px){
++  .kpi-grid,.quick-entry-grid,.mini-kpi-grid{grid-template-columns:1fr 1fr}
++  .quick-entry-card small{display:none}
++  .record-mobile-fields{grid-template-columns:1fr}
++  .ghost-btn{font-size:11px;padding-inline:8px}
++}
+--- a/js/app.js
++++ b/js/app.js
+@@ -103,8 +103,15 @@
+   }
+ 
+   function save(event){
+-    STORE.save(state,event);
+-    renderAll();
++    try{
++      STORE.save(state,event);
++      renderAll();
++      return true;
++    }catch(err){
++      console.error("ÖZBİLTAR kayıt hatası",err);
++      alert("Kayıt cihaz hafızasına yazılamadı. Depolama alanını kontrol edip tekrar deneyin.");
++      return false;
++    }
+   }
+   function toast(message){
+     $("toast").textContent=message;
+@@ -274,10 +281,17 @@
+     const schema=SCHEMAS[currentModule],search=$("recordSearch").value.trim().toLocaleLowerCase("tr-TR");
+     let rows=state.data[currentModule].slice();
+     if(search) rows=rows.filter(r=>JSON.stringify(r).toLocaleLowerCase("tr-TR").includes(search));
+-    const cols=schema.fields.slice(0,6);
+-    $("recordTable").innerHTML=rows.length?`<table><thead><tr>${cols.map(f=>`<th>${f[1]}</th>`).join("")}<th>İşlem</th></tr></thead><tbody>
+-      ${rows.slice().reverse().map(r=>`<tr>${cols.map(f=>`<td>${escapeHtml(fieldValue(f,r))}</td>`).join("")}<td><button class="action-btn edit-record" data-id="${r.id}">Düzenle</button><button class="action-btn delete-record" data-id="${r.id}">Sil</button></td></tr>`).join("")}
+-    </tbody></table>`:'<div class="empty">Bu filtrede kayıt yok.</div>';
++    const cols=schema.fields.slice(0,6), mobileCols=schema.fields.slice(0,4);
++    const reversed=rows.slice().reverse();
++    $("recordTable").innerHTML=rows.length?`
++      <div class="desktop-record-table"><table><thead><tr>${cols.map(f=>`<th>${f[1]}</th>`).join("")}<th>İşlem</th></tr></thead><tbody>
++        ${reversed.map(r=>`<tr>${cols.map(f=>`<td>${escapeHtml(fieldValue(f,r))}</td>`).join("")}<td><button class="action-btn edit-record" data-id="${r.id}">Düzenle</button><button class="action-btn delete-record" data-id="${r.id}">Sil</button></td></tr>`).join("")}
++      </tbody></table></div>
++      <div class="mobile-record-list">${reversed.map((r,idx)=>`<article class="record-mobile-card">
++        <div class="record-mobile-title"><strong>${escapeHtml(schema.name)} #${rows.length-idx}</strong><span class="badge blue">Kayıt</span></div>
++        <div class="record-mobile-fields">${mobileCols.map(f=>`<div class="record-mobile-field"><span>${escapeHtml(f[1])}</span><b>${escapeHtml(fieldValue(f,r))}</b></div>`).join("")}</div>
++        <div class="record-mobile-actions"><button class="action-btn edit-record" data-id="${r.id}">Düzenle</button><button class="action-btn delete-record" data-id="${r.id}">Sil</button></div>
++      </article>`).join("")}</div>`:'<div class="empty">Bu birimde henüz kayıt yok. <strong>+ Yeni Kayıt</strong> ile başlayın.</div>';
+     document.querySelectorAll(".edit-record").forEach(b=>b.onclick=()=>openRecordModal(b.dataset.id));
+     document.querySelectorAll(".delete-record").forEach(b=>b.onclick=()=>{
+       if(confirm("Bu kayıt silinsin mi?")){state.data[currentModule]=state.data[currentModule].filter(x=>x.id!==b.dataset.id);save(`${SCHEMAS[currentModule].name} kaydı silindi`);}
+@@ -285,32 +299,57 @@
+   }
+ 
+   function fieldHtml(field,value){
+-    const [key,label,type,required,options]=field,wide=type==="textarea"?"wide":"",req=required?"required":"";
+-    if(type==="select") return `<label class="${wide}">${label}<select name="${key}" ${req}><option value="">Seç</option>${options.map(o=>`<option ${value===o?"selected":""}>${o}</option>`).join("")}</select></label>`;
+-    if(type==="textarea") return `<label class="${wide}">${label}<textarea name="${key}" ${req}>${escapeHtml(value)}</textarea></label>`;
+-    return `<label class="${wide}">${label}<input type="${type}" step="${type==="number"?"any":""}" name="${key}" value="${escapeHtml(value)}" ${req}></label>`;
++    const [key,label,type,required,options]=field,wide=type==="textarea"?"wide":"",req=required?"required":"",requiredClass=required?"required-field":"";
++    const cls=[wide,requiredClass].filter(Boolean).join(" ");
++    if(type==="select") return `<label class="${cls}">${label}<select name="${key}" ${req}><option value="">Seç</option>${options.map(o=>`<option value="${escapeHtml(o)}" ${value===o?"selected":""}>${escapeHtml(o)}</option>`).join("")}</select></label>`;
++    if(type==="textarea") return `<label class="${cls}">${label}<textarea name="${key}" ${req}>${escapeHtml(value)}</textarea></label>`;
++    const inputMode=type==="number"?' inputmode="decimal"':'';
++    return `<label class="${cls}">${label}<input type="${type}" step="${type==="number"?"any":""}"${inputMode} name="${key}" value="${escapeHtml(value)}" ${req}></label>`;
+   }
+   function openModal(title,html,onSubmit){
+     $("modalTitle").textContent=title;
+-    $("modalForm").innerHTML=html;
++    $("modalForm").innerHTML='<div class="form-hint">Alanları doldurup alttaki <strong>Kaydet</strong> düğmesine dokunun.</div>'+html;
+     $("modalForm").onsubmit=onSubmit;
+     $("modalBackdrop").classList.remove("hidden");
+-  }
+-  function closeModal(){ $("modalBackdrop").classList.add("hidden"); }
++    document.body.classList.add("modal-open");
++    $("modalForm").scrollTop=0;
++    setTimeout(()=>{
++      const first=$("modalForm").querySelector('input:not([type="hidden"]),select,textarea');
++      if(first){ first.focus({preventScroll:true}); first.scrollIntoView({block:"center",behavior:"smooth"}); }
++    },140);
++  }
++  function closeModal(){ $("modalBackdrop").classList.add("hidden"); document.body.classList.remove("modal-open"); }
+   const formActions=()=>'<div class="form-actions"><button type="button" class="secondary-btn cancel-modal">Vazgeç</button><button type="submit" class="primary-btn">Kaydet</button></div>';
+ 
+-  function openRecordModal(recordId=null){
++  function openRecordModal(recordId=null,moduleKey=null,preset={}){
++    if(moduleKey && SCHEMAS[moduleKey]) currentModule=moduleKey;
+     const schema=SCHEMAS[currentModule],record=recordId?state.data[currentModule].find(r=>r.id===recordId):{};
+-    const html=schema.fields.map(f=>fieldHtml(f,record[f[0]]??((f[2]==="date"&&f[0]==="date")?today():""))).join("")+formActions();
++    const getDefault=f=>{
++      if(record[f[0]]!==undefined) return record[f[0]];
++      if(preset[f[0]]!==undefined) return preset[f[0]];
++      if(f[2]==="date" && (f[0]==="date"||f[0]==="start")) return today();
++      if(currentModule==="milk" && f[0]==="recordType") return "Çiftlik Toplam";
++      if(currentModule==="milk" && f[0]==="earTag") return "TOPLAM";
++      return "";
++    };
++    const html=schema.fields.map(f=>fieldHtml(f,getDefault(f))).join("")+formActions();
+     openModal((recordId?"Düzenle · ":"Yeni · ")+schema.name,html,e=>{
+       e.preventDefault();
++      if(!e.target.reportValidity()) return;
+       const form=new FormData(e.target),obj={};
+       schema.fields.forEach(f=>obj[f[0]]=form.get(f[0])??"");
+       if(recordId){
+         const i=state.data[currentModule].findIndex(r=>r.id===recordId);
++        if(i<0){alert("Düzenlenecek kayıt bulunamadı.");return;}
+         state.data[currentModule][i]={...state.data[currentModule][i],...obj};
+       }else state.data[currentModule].push({id:STORE.uid(),createdAt:new Date().toISOString(),...obj});
+-      closeModal();save(`${schema.name} kaydı güncellendi`);toast("Kayıt kaydedildi.");
++      if(save(`${schema.name} kaydı güncellendi`)){
++        closeModal();
++        switchView("records");
++        currentModule=moduleKey||currentModule;
++        renderRecords();
++        toast("Kayıt kaydedildi ✓");
++      }
+     });
+     document.querySelector(".cancel-modal").onclick=closeModal;
+   }
+@@ -496,10 +535,16 @@
+   $("recordSearch").oninput=renderRecords;
+   $("newRecordBtn").onclick=()=>openRecordModal();
+   $("quickActionBtn").onclick=()=>{switchView("records");openRecordModal();};
++  $("mobileFab").onclick=()=>{switchView("records");openRecordModal();};
++  document.querySelectorAll("[data-quick-module]").forEach(b=>b.onclick=()=>{
++    const moduleKey=b.dataset.quickModule;
++    const preset=b.dataset.quickType?{type:b.dataset.quickType}:{};
++    openRecordModal(null,moduleKey,preset);
++  });
+   $("newTaskBtn").onclick=openTaskModal;
+   $("newDecisionBtn").onclick=openDecisionModal;
+   $("modalCloseBtn").onclick=closeModal;
+-  $("modalBackdrop").onclick=e=>{if(e.target.id==="modalBackdrop")closeModal();};
++  $("modalBackdrop").onclick=e=>{if(e.target.id==="modalBackdrop" && window.innerWidth>650)closeModal();};
+   $("printBtn").onclick=()=>{
+     const payload={state,metrics:metrics(),agents:runAgents(),alerts:alerts(),management:management()};
+     window.OZ_REPORTS.printPdf(payload);

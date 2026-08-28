@@ -7,7 +7,7 @@ on:
     paths:
       - "ozbiltar/payload/**"
       - "ozbiltar/payload_fix/**"
-      - "ozbiltar/v6_*.patch"
+      - "ozbiltar/v6_overlay_*.b64"
       - ".github/workflows/build-ozbiltar-apk.yml"
 
 jobs:
@@ -28,7 +28,7 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Verify and expand OZBILTAR project
+      - name: Verify and expand base project
         shell: bash
         run: |
           rm -rf ozbiltar/buildsrc
@@ -58,17 +58,24 @@ jobs:
           tar -xzf ozbiltar/project.tar.gz -C ozbiltar/buildsrc
           test -f ozbiltar/buildsrc/android-native/app/build.gradle
 
-      - name: Apply V6 mobile and data-entry patches
+      - name: Overlay V6 mobile source
         shell: bash
         run: |
+          cat ozbiltar/v6_overlay_a.b64 ozbiltar/v6_overlay_b.b64 > ozbiltar/v6_overlay.full.b64
+          echo "V6 overlay chars: $(wc -c < ozbiltar/v6_overlay.full.b64)"
+          test "$(wc -c < ozbiltar/v6_overlay.full.b64)" -eq 36164
+          base64 -d ozbiltar/v6_overlay.full.b64 > ozbiltar/v6_overlay.tar.gz
+          gzip -t ozbiltar/v6_overlay.tar.gz
+          tar -xzf ozbiltar/v6_overlay.tar.gz -C ozbiltar/buildsrc
           cd ozbiltar/buildsrc
-          patch -p1 < ../v6_web.patch
-          patch -p1 < ../v6_native.patch
           node --check js/app.js
           node --check js/config.js
           node --check js/storage.js
           grep 'quick-entry-grid' index.html
           grep 'versionName "6.0.0"' android-native/app/build.gradle
+          grep 'android:windowSoftInputMode="adjustResize"' android-native/app/src/main/AndroidManifest.xml
+          grep 'android.print.PrintManager' android-native/app/src/main/java/com/ozbiltar/yonetim/MainActivity.java
+          grep '@color/oz_navy' android-native/app/src/main/res/drawable/splash_background.xml
 
       - name: Sync V6 web app into Android assets
         shell: bash
@@ -82,6 +89,7 @@ jobs:
           test -f "$WWW/js/app.js"
           grep 'mobileFab' "$WWW/index.html"
           grep 'MOBILE-FIRST DATA ENTRY' "$WWW/assets/styles.css"
+          grep 'openRecordModal(recordId=null,moduleKey=null,preset={})' "$WWW/js/app.js"
 
       - name: Build V6 debug APK
         working-directory: ozbiltar/buildsrc/android-native

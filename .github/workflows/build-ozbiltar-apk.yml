@@ -57,6 +57,12 @@ jobs:
           tar -xzf ozbiltar/project.tar.gz -C ozbiltar/buildsrc
           test -f ozbiltar/buildsrc/android-native/app/build.gradle
 
+      - name: Patch Android splash resource
+        shell: bash
+        run: |
+          sed -i 's/android:drawable="#122033"/android:drawable="@color\/oz_navy"/' ozbiltar/buildsrc/android-native/app/src/main/res/drawable/splash_background.xml
+          grep '@color/oz_navy' ozbiltar/buildsrc/android-native/app/src/main/res/drawable/splash_background.xml
+
       - name: Build debug APK
         working-directory: ozbiltar/buildsrc/android-native
         run: gradle assembleDebug --stacktrace

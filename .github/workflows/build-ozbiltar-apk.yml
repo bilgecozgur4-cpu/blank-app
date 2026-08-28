@@ -75,13 +75,12 @@ jobs:
           grep 'versionName "6.0.0"' android-native/app/build.gradle
           grep 'android:windowSoftInputMode="adjustResize"' android-native/app/src/main/AndroidManifest.xml
           grep 'android.print.PrintManager' android-native/app/src/main/java/com/ozbiltar/yonetim/MainActivity.java
-          grep '@color/oz_navy' android-native/app/src/main/res/drawable/splash_background.xml
 
-      - name: Ensure Android launcher icon
+      - name: Ensure Android launcher icon and splash
         shell: bash
         run: |
           RES=ozbiltar/buildsrc/android-native/app/src/main/res
-          mkdir -p "$RES/mipmap"
+          mkdir -p "$RES/mipmap" "$RES/drawable"
           cat > "$RES/mipmap/ic_launcher.xml" <<'EOF'
           <vector xmlns:android="http://schemas.android.com/apk/res/android"
               android:width="108dp" android:height="108dp"
@@ -92,7 +91,14 @@ jobs:
               <path android:fillColor="#FFFFFF" android:pathData="M33,45C40,40 46,38 54,38C62,38 68,40 75,45L70,55C65,52 60,51 54,51C48,51 43,52 38,55Z"/>
           </vector>
           EOF
+          cat > "$RES/drawable/splash_background.xml" <<'EOF'
+          <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+            <item android:drawable="@color/oz_navy"/>
+            <item android:drawable="@mipmap/ic_launcher" android:gravity="center"/>
+          </layer-list>
+          EOF
           test -f "$RES/mipmap/ic_launcher.xml"
+          grep '@mipmap/ic_launcher' "$RES/drawable/splash_background.xml"
 
       - name: Sync V6 web app into Android assets
         shell: bash

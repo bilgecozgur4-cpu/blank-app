@@ -5,7 +5,7 @@ on:
   push:
     branches: [ main ]
     paths:
-      - "ozbiltar/project.tar.gz.b64"
+      - "ozbiltar/payload/**"
       - ".github/workflows/build-ozbiltar-apk.yml"
 
 jobs:
@@ -26,11 +26,16 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Expand ÖZBİLTAR project
+      - name: Verify and expand OZBILTAR project
         shell: bash
         run: |
           mkdir -p ozbiltar/buildsrc
-          base64 -d ozbiltar/project.tar.gz.b64 | tar -xzf - -C ozbiltar/buildsrc
+          cat ozbiltar/payload/part*.b64 > ozbiltar/project.full.b64
+          echo "Payload chars: $(wc -c < ozbiltar/project.full.b64)"
+          test "$(wc -c < ozbiltar/project.full.b64)" -eq 84812
+          base64 -d ozbiltar/project.full.b64 > ozbiltar/project.tar.gz
+          gzip -t ozbiltar/project.tar.gz
+          tar -xzf ozbiltar/project.tar.gz -C ozbiltar/buildsrc
           test -f ozbiltar/buildsrc/android-native/app/build.gradle
 
       - name: Build debug APK

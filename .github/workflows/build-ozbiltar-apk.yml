@@ -57,11 +57,13 @@ jobs:
           tar -xzf ozbiltar/project.tar.gz -C ozbiltar/buildsrc
           test -f ozbiltar/buildsrc/android-native/app/build.gradle
 
-      - name: Patch Android splash resource
+      - name: Patch Android compatibility issues
         shell: bash
         run: |
           sed -i 's/android:drawable="#122033"/android:drawable="@color\/oz_navy"/' ozbiltar/buildsrc/android-native/app/src/main/res/drawable/splash_background.xml
+          sed -i 's/import android.app.PrintManager;/import android.print.PrintManager;/' ozbiltar/buildsrc/android-native/app/src/main/java/com/ozbiltar/yonetim/MainActivity.java
           grep '@color/oz_navy' ozbiltar/buildsrc/android-native/app/src/main/res/drawable/splash_background.xml
+          grep 'android.print.PrintManager' ozbiltar/buildsrc/android-native/app/src/main/java/com/ozbiltar/yonetim/MainActivity.java
 
       - name: Build debug APK
         working-directory: ozbiltar/buildsrc/android-native

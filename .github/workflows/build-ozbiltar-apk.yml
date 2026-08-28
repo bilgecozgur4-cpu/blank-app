@@ -6,6 +6,7 @@ on:
     branches: [ main ]
     paths:
       - "ozbiltar/payload/**"
+      - "ozbiltar/payload_fix/**"
       - ".github/workflows/build-ozbiltar-apk.yml"
 
 jobs:
@@ -30,7 +31,25 @@ jobs:
         shell: bash
         run: |
           mkdir -p ozbiltar/buildsrc
-          cat ozbiltar/payload/part*.b64 > ozbiltar/project.full.b64
+          cat \
+            ozbiltar/payload/part00.b64 \
+            ozbiltar/payload/part01.b64 \
+            ozbiltar/payload/part02.b64 \
+            ozbiltar/payload/part03.b64 \
+            ozbiltar/payload/part04.b64 \
+            ozbiltar/payload/part05.b64 \
+            ozbiltar/payload/part06.b64 \
+            ozbiltar/payload_fix/part07a.b64 \
+            ozbiltar/payload_fix/part07b.b64 \
+            ozbiltar/payload/part08.b64 \
+            ozbiltar/payload/part09.b64 \
+            ozbiltar/payload/part10.b64 \
+            ozbiltar/payload/part11.b64 \
+            ozbiltar/payload_fix/part12a.b64 \
+            ozbiltar/payload_fix/part12b.b64 \
+            ozbiltar/payload/part13.b64 \
+            ozbiltar/payload/part14.b64 \
+            > ozbiltar/project.full.b64
           echo "Payload chars: $(wc -c < ozbiltar/project.full.b64)"
           test "$(wc -c < ozbiltar/project.full.b64)" -eq 84812
           base64 -d ozbiltar/project.full.b64 > ozbiltar/project.tar.gz

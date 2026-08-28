@@ -7,6 +7,7 @@ on:
     paths:
       - "ozbiltar/payload/**"
       - "ozbiltar/payload_fix/**"
+      - "ozbiltar/v6_*.patch"
       - ".github/workflows/build-ozbiltar-apk.yml"
 
 jobs:
@@ -30,6 +31,7 @@ jobs:
       - name: Verify and expand OZBILTAR project
         shell: bash
         run: |
+          rm -rf ozbiltar/buildsrc
           mkdir -p ozbiltar/buildsrc
           cat \
             ozbiltar/payload/part00.b64 \
@@ -50,28 +52,44 @@ jobs:
             ozbiltar/payload/part13.b64 \
             ozbiltar/payload/part14.b64 \
             > ozbiltar/project.full.b64
-          echo "Payload chars: $(wc -c < ozbiltar/project.full.b64)"
           test "$(wc -c < ozbiltar/project.full.b64)" -eq 84812
           base64 -d ozbiltar/project.full.b64 > ozbiltar/project.tar.gz
           gzip -t ozbiltar/project.tar.gz
           tar -xzf ozbiltar/project.tar.gz -C ozbiltar/buildsrc
           test -f ozbiltar/buildsrc/android-native/app/build.gradle
 
-      - name: Patch Android compatibility issues
+      - name: Apply V6 mobile and data-entry patches
         shell: bash
         run: |
-          sed -i 's/android:drawable="#122033"/android:drawable="@color\/oz_navy"/' ozbiltar/buildsrc/android-native/app/src/main/res/drawable/splash_background.xml
-          sed -i 's/import android.app.PrintManager;/import android.print.PrintManager;/' ozbiltar/buildsrc/android-native/app/src/main/java/com/ozbiltar/yonetim/MainActivity.java
-          grep '@color/oz_navy' ozbiltar/buildsrc/android-native/app/src/main/res/drawable/splash_background.xml
-          grep 'android.print.PrintManager' ozbiltar/buildsrc/android-native/app/src/main/java/com/ozbiltar/yonetim/MainActivity.java
+          cd ozbiltar/buildsrc
+          patch -p1 < ../v6_web.patch
+          patch -p1 < ../v6_native.patch
+          node --check js/app.js
+          node --check js/config.js
+          node --check js/storage.js
+          grep 'quick-entry-grid' index.html
+          grep 'versionName "6.0.0"' android-native/app/build.gradle
 
-      - name: Build debug APK
+      - name: Sync V6 web app into Android assets
+        shell: bash
+        run: |
+          cd ozbiltar/buildsrc
+          WWW=android-native/app/src/main/assets/www
+          rm -rf "$WWW/assets" "$WWW/js"
+          mkdir -p "$WWW"
+          cp index.html manifest.webmanifest sw.js "$WWW/"
+          cp -r assets js "$WWW/"
+          test -f "$WWW/js/app.js"
+          grep 'mobileFab' "$WWW/index.html"
+          grep 'MOBILE-FIRST DATA ENTRY' "$WWW/assets/styles.css"
+
+      - name: Build V6 debug APK
         working-directory: ozbiltar/buildsrc/android-native
         run: gradle assembleDebug --stacktrace
 
-      - name: Upload APK
+      - name: Upload V6 APK
         uses: actions/upload-artifact@v4
         with:
-          name: OZBILTAR-Yonetim-AI-Pro-V5-debug
+          name: OZBILTAR-Yonetim-AI-Pro-V6-mobile-debug
           path: ozbiltar/buildsrc/android-native/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error

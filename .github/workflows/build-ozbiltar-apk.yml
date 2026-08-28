@@ -1,0 +1,45 @@
+name: Build OZBILTAR APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - "ozbiltar/project.tar.gz.b64"
+      - ".github/workflows/build-ozbiltar-apk.yml"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Gradle 8.9
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Expand ÖZBİLTAR project
+        shell: bash
+        run: |
+          mkdir -p ozbiltar/buildsrc
+          base64 -d ozbiltar/project.tar.gz.b64 | tar -xzf - -C ozbiltar/buildsrc
+          test -f ozbiltar/buildsrc/android-native/app/build.gradle
+
+      - name: Build debug APK
+        working-directory: ozbiltar/buildsrc/android-native
+        run: gradle assembleDebug --stacktrace
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: OZBILTAR-Yonetim-AI-Pro-V5-debug
+          path: ozbiltar/buildsrc/android-native/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error

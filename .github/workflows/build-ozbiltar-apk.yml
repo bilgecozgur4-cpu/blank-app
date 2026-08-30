@@ -1,4 +1,4 @@
-# build-revision: v7.2-corrected-payload
+# build-revision: v7.2-split-02
 name: Build OZBILTAR APK
 
 on:
@@ -79,7 +79,8 @@ jobs:
           cat \
             ozbiltar/v7_2_overlay_00.b64 \
             ozbiltar/v7_2_overlay_01.b64 \
-            ozbiltar/v7_2_overlay_02.b64 \
+            ozbiltar/v7_2_overlay_02a.b64 \
+            ozbiltar/v7_2_overlay_02b.b64 \
             ozbiltar/v7_2_overlay_03.b64 \
             ozbiltar/v7_2_overlay_04.b64 \
             > ozbiltar/v7_2_overlay.full.b64

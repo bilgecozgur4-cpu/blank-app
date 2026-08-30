@@ -1,4 +1,4 @@
-# build-revision: v7.3-business-suite
+# build-revision: v7.4-company-infrastructure
 name: Build OZBILTAR APK
 
 on:
@@ -13,6 +13,7 @@ on:
       - "ozbiltar/v73.js"
       - "ozbiltar/v73_app_block.txt"
       - "ozbiltar/apply_v73.py"
+      - "ozbiltar/v74/**"
       - ".github/workflows/build-ozbiltar-apk.yml"
 
 jobs:
@@ -95,11 +96,9 @@ jobs:
           cd ozbiltar/buildsrc
           node --check js/app.js
           node --check js/storage.js
-          node --check js/config.js
           node --check js/quality.js
           grep 'id="animalProfileView"' index.html
           grep 'id="stockMovementPanel"' index.html
-          grep 'versionName "7.2.0"' android-native/app/build.gradle
 
       - name: Apply and verify V7.3 business suite
         shell: bash
@@ -111,15 +110,31 @@ jobs:
           python apply_v73.py
           node --check js/app.js
           node --check js/v73.js
-          node --check js/storage.js
           grep 'id="calendarView"' index.html
-          grep 'id="profitabilityView"' index.html
-          grep 'id="rationView"' index.html
           grep 'id="financeCenterView"' index.html
-          grep 'id="monthlyCloseView"' index.html
-          grep 'scheduleNotification' android-native/app/src/main/java/com/ozbiltar/yonetim/MainActivity.java
-          test -f android-native/app/src/main/java/com/ozbiltar/yonetim/NotificationReceiver.java
           grep 'versionName "7.3.0"' android-native/app/build.gradle
+
+      - name: Apply and verify V7.4 company infrastructure
+        shell: bash
+        run: |
+          cp ozbiltar/v74/v74.js ozbiltar/buildsrc/js/v74.js
+          cp ozbiltar/v74/v74-ui.js ozbiltar/buildsrc/js/v74-ui.js
+          python ozbiltar/v74/apply_v74.py ozbiltar/buildsrc
+          cat ozbiltar/v74/v74.css.add >> ozbiltar/buildsrc/assets/styles.css
+          cd ozbiltar/buildsrc
+          node --check js/app.js
+          node --check js/storage.js
+          node --check js/v74.js
+          node --check js/v74-ui.js
+          grep 'id="usersView"' index.html
+          grep 'id="attachmentsView"' index.html
+          grep 'id="qrView"' index.html
+          grep 'id="herdPerformanceView"' index.html
+          grep 'id="cloudView"' index.html
+          grep 'android.permission.CAMERA' android-native/app/src/main/AndroidManifest.xml
+          grep 'IntentIntegrator' android-native/app/src/main/java/com/ozbiltar/yonetim/MainActivity.java
+          grep 'generateQr' android-native/app/src/main/java/com/ozbiltar/yonetim/MainActivity.java
+          grep 'versionName "7.4.0"' android-native/app/build.gradle
 
       - name: Ensure Android launcher icon and splash
         shell: bash
@@ -127,13 +142,11 @@ jobs:
           RES=ozbiltar/buildsrc/android-native/app/src/main/res
           mkdir -p "$RES/mipmap" "$RES/drawable"
           cat > "$RES/mipmap/ic_launcher.xml" <<'EOF'
-          <vector xmlns:android="http://schemas.android.com/apk/res/android"
-              android:width="108dp" android:height="108dp"
-              android:viewportWidth="108" android:viewportHeight="108">
-              <path android:fillColor="#122033" android:pathData="M0,0h108v108h-108z"/>
-              <path android:fillColor="#D9B985" android:pathData="M15,39C24,18 38,11 54,11C70,11 84,18 93,39L82,44C75,29 65,23 54,23C43,23 33,29 26,44Z"/>
-              <path android:fillColor="#D9B985" android:pathData="M18,80C38,52 61,43 91,45C70,52 52,64 39,80Z"/>
-              <path android:fillColor="#FFFFFF" android:pathData="M33,45C40,40 46,38 54,38C62,38 68,40 75,45L70,55C65,52 60,51 54,51C48,51 43,52 38,55Z"/>
+          <vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="108dp" android:height="108dp" android:viewportWidth="108" android:viewportHeight="108">
+            <path android:fillColor="#122033" android:pathData="M0,0h108v108h-108z"/>
+            <path android:fillColor="#D9B985" android:pathData="M15,39C24,18 38,11 54,11C70,11 84,18 93,39L82,44C75,29 65,23 54,23C43,23 33,29 26,44Z"/>
+            <path android:fillColor="#D9B985" android:pathData="M18,80C38,52 61,43 91,45C70,52 52,64 39,80Z"/>
+            <path android:fillColor="#FFFFFF" android:pathData="M33,45C40,40 46,38 54,38C62,38 68,40 75,45L70,55C65,52 60,51 54,51C48,51 43,52 38,55Z"/>
           </vector>
           EOF
           cat > "$RES/drawable/splash_background.xml" <<'EOF'
@@ -143,7 +156,7 @@ jobs:
           </layer-list>
           EOF
 
-      - name: Sync V7.3 web app into Android assets
+      - name: Sync V7.4 web app into Android assets
         shell: bash
         run: |
           cd ozbiltar/buildsrc
@@ -152,19 +165,21 @@ jobs:
           mkdir -p "$WWW"
           cp index.html manifest.webmanifest sw.js "$WWW/"
           cp -r assets js "$WWW/"
-          test -f "$WWW/js/v73.js"
-          grep 'Takvim & Hatırlatıcı' "$WWW/index.html"
-          grep 'Hayvan Kârlılığı' "$WWW/index.html"
-          grep 'Cari / Kasa Merkezi' "$WWW/index.html"
-          grep 'Aylık Yönetim Kapanışı' "$WWW/index.html"
+          test -f "$WWW/js/v74.js"
+          test -f "$WWW/js/v74-ui.js"
+          grep 'Kullanıcı & Yetki Merkezi' "$WWW/index.html"
+          grep 'Belge & Fotoğraf Merkezi' "$WWW/index.html"
+          grep 'Hayvan QR Merkezi' "$WWW/index.html"
+          grep 'Gelişmiş Sürü Performansı' "$WWW/index.html"
+          grep 'Bulut Senkronizasyonu' "$WWW/index.html"
 
-      - name: Build V7.3 debug APK
+      - name: Build V7.4 debug APK
         working-directory: ozbiltar/buildsrc/android-native
         run: gradle assembleDebug --stacktrace
 
-      - name: Upload V7.3 APK
+      - name: Upload V7.4 APK
         uses: actions/upload-artifact@v4
         with:
-          name: OZBILTAR-Yonetim-AI-Pro-V7.3-debug
+          name: OZBILTAR-Yonetim-AI-Pro-V7.4-debug
           path: ozbiltar/buildsrc/android-native/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error

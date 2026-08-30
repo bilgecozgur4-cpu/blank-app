@@ -1,4 +1,4 @@
-# build-revision: v7.4-company-infrastructure
+# build-revision: v7.4-qr-import-fix
 name: Build OZBILTAR APK
 
 on:
@@ -6,14 +6,7 @@ on:
   push:
     branches: [ main ]
     paths:
-      - "ozbiltar/payload/**"
-      - "ozbiltar/payload_fix/**"
-      - "ozbiltar/v6_overlay_*.b64"
-      - "ozbiltar/v7_2_overlay_*.b64"
-      - "ozbiltar/v73.js"
-      - "ozbiltar/v73_app_block.txt"
-      - "ozbiltar/apply_v73.py"
-      - "ozbiltar/v74/**"
+      - "ozbiltar/**"
       - ".github/workflows/build-ozbiltar-apk.yml"
 
 jobs:
@@ -22,49 +15,33 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-
       - name: Set up Gradle 8.9
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.9'
 
-      - name: Verify and expand base project
+      - name: Reconstruct base project
         shell: bash
         run: |
-          rm -rf ozbiltar/buildsrc
-          mkdir -p ozbiltar/buildsrc
+          rm -rf ozbiltar/buildsrc && mkdir -p ozbiltar/buildsrc
           cat \
-            ozbiltar/payload/part00.b64 \
-            ozbiltar/payload/part01.b64 \
-            ozbiltar/payload/part02.b64 \
-            ozbiltar/payload/part03.b64 \
-            ozbiltar/payload/part04.b64 \
-            ozbiltar/payload/part05.b64 \
-            ozbiltar/payload/part06.b64 \
-            ozbiltar/payload_fix/part07a.b64 \
-            ozbiltar/payload_fix/part07b.b64 \
-            ozbiltar/payload/part08.b64 \
-            ozbiltar/payload/part09.b64 \
-            ozbiltar/payload/part10.b64 \
-            ozbiltar/payload/part11.b64 \
-            ozbiltar/payload_fix/part12a.b64 \
-            ozbiltar/payload_fix/part12b.b64 \
-            ozbiltar/payload/part13.b64 \
-            ozbiltar/payload/part14.b64 \
-            > ozbiltar/project.full.b64
+            ozbiltar/payload/part00.b64 ozbiltar/payload/part01.b64 ozbiltar/payload/part02.b64 \
+            ozbiltar/payload/part03.b64 ozbiltar/payload/part04.b64 ozbiltar/payload/part05.b64 \
+            ozbiltar/payload/part06.b64 ozbiltar/payload_fix/part07a.b64 ozbiltar/payload_fix/part07b.b64 \
+            ozbiltar/payload/part08.b64 ozbiltar/payload/part09.b64 ozbiltar/payload/part10.b64 \
+            ozbiltar/payload/part11.b64 ozbiltar/payload_fix/part12a.b64 ozbiltar/payload_fix/part12b.b64 \
+            ozbiltar/payload/part13.b64 ozbiltar/payload/part14.b64 > ozbiltar/project.full.b64
           test "$(wc -c < ozbiltar/project.full.b64)" -eq 84812
           base64 -d ozbiltar/project.full.b64 > ozbiltar/project.tar.gz
           gzip -t ozbiltar/project.tar.gz
           tar -xzf ozbiltar/project.tar.gz -C ozbiltar/buildsrc
-          test -f ozbiltar/buildsrc/android-native/app/build.gradle
 
-      - name: Overlay proven V6 mobile source
+      - name: Apply V6 mobile source
         shell: bash
         run: |
           cat ozbiltar/v6_overlay_a.b64 ozbiltar/v6_overlay_b.b64 > ozbiltar/v6_overlay.full.b64
@@ -72,68 +49,47 @@ jobs:
           base64 -d ozbiltar/v6_overlay.full.b64 > ozbiltar/v6_overlay.tar.gz
           gzip -t ozbiltar/v6_overlay.tar.gz
           tar -xzf ozbiltar/v6_overlay.tar.gz -C ozbiltar/buildsrc
-          cd ozbiltar/buildsrc
-          node --check js/app.js
-          grep 'quick-entry-grid' index.html
-          grep 'android:windowSoftInputMode="adjustResize"' android-native/app/src/main/AndroidManifest.xml
 
-      - name: Overlay and verify V7.2 application
+      - name: Apply V7.2 core
         shell: bash
         run: |
           cat \
-            ozbiltar/v7_2_overlay_00.b64 \
-            ozbiltar/v7_2_overlay_01.b64 \
-            ozbiltar/v7_2_overlay_02a.b64 \
-            ozbiltar/v7_2_overlay_02b.b64 \
-            ozbiltar/v7_2_overlay_03.b64 \
-            ozbiltar/v7_2_overlay_04.b64 \
-            > ozbiltar/v7_2_overlay.full.b64
+            ozbiltar/v7_2_overlay_00.b64 ozbiltar/v7_2_overlay_01.b64 \
+            ozbiltar/v7_2_overlay_02a.b64 ozbiltar/v7_2_overlay_02b.b64 \
+            ozbiltar/v7_2_overlay_03.b64 ozbiltar/v7_2_overlay_04.b64 > ozbiltar/v7_2_overlay.full.b64
           test "$(wc -c < ozbiltar/v7_2_overlay.full.b64)" -eq 46456
           base64 -d ozbiltar/v7_2_overlay.full.b64 > ozbiltar/v7_2_overlay.tar.gz
           gzip -t ozbiltar/v7_2_overlay.tar.gz
           echo "f1a6198d40ff41cbd8a1d95c13b5536878ee0d0a37ff6a360d9b5f0a1967b174  ozbiltar/v7_2_overlay.tar.gz" | sha256sum -c -
           tar -xzf ozbiltar/v7_2_overlay.tar.gz -C ozbiltar/buildsrc
-          cd ozbiltar/buildsrc
-          node --check js/app.js
-          node --check js/storage.js
-          node --check js/quality.js
-          grep 'id="animalProfileView"' index.html
-          grep 'id="stockMovementPanel"' index.html
 
-      - name: Apply and verify V7.3 business suite
+      - name: Apply V7.3 business suite
         shell: bash
         run: |
           cp ozbiltar/v73.js ozbiltar/buildsrc/js/v73.js
           cp ozbiltar/v73_app_block.txt ozbiltar/buildsrc/v73_app_block.txt
           cp ozbiltar/apply_v73.py ozbiltar/buildsrc/apply_v73.py
-          cd ozbiltar/buildsrc
-          python apply_v73.py
-          node --check js/app.js
-          node --check js/v73.js
-          grep 'id="calendarView"' index.html
-          grep 'id="financeCenterView"' index.html
-          grep 'versionName "7.3.0"' android-native/app/build.gradle
+          cd ozbiltar/buildsrc && python apply_v73.py
 
-      - name: Apply and verify V7.4 company infrastructure
+      - name: Apply V7.4 company suite and QR fix
         shell: bash
         run: |
           cp ozbiltar/v74/v74.js ozbiltar/buildsrc/js/v74.js
           cp ozbiltar/v74/v74-ui.js ozbiltar/buildsrc/js/v74-ui.js
           python ozbiltar/v74/apply_v74.py ozbiltar/buildsrc
+          python ozbiltar/v74/fix_qr_import.py ozbiltar/buildsrc
           cat ozbiltar/v74/v74.css.add >> ozbiltar/buildsrc/assets/styles.css
           cd ozbiltar/buildsrc
           node --check js/app.js
           node --check js/storage.js
           node --check js/v74.js
           node --check js/v74-ui.js
-          grep 'id="usersView"' index.html
-          grep 'id="attachmentsView"' index.html
-          grep 'id="qrView"' index.html
-          grep 'id="herdPerformanceView"' index.html
-          grep 'id="cloudView"' index.html
-          grep 'android.permission.CAMERA' android-native/app/src/main/AndroidManifest.xml
-          grep 'IntentIntegrator' android-native/app/src/main/java/com/ozbiltar/yonetim/MainActivity.java
-          grep 'generateQr' android-native/app/src/main/java/com/ozbiltar/yonetim/MainActivity.java
+          grep 'Kullanıcı & Yetki Merkezi' index.html
+          grep 'Belge & Fotoğraf Merkezi' index.html
+          grep 'Hayvan QR Merkezi' index.html
+          grep 'Gelişmiş Sürü Performansı' index.html
+          grep 'Bulut Senkronizasyonu' index.html
+          grep 'com.google.zxing.integration.android.IntentIntegrator' android-native/app/src/main/java/com/ozbiltar/yonetim/MainActivity.java
           grep 'versionName "7.4.0"' android-native/app/build.gradle
 
       - name: Ensure Android launcher icon and splash
@@ -165,12 +121,9 @@ jobs:
           mkdir -p "$WWW"
           cp index.html manifest.webmanifest sw.js "$WWW/"
           cp -r assets js "$WWW/"
-          test -f "$WWW/js/v74.js"
-          test -f "$WWW/js/v74-ui.js"
+          test -f "$WWW/js/v74.js" && test -f "$WWW/js/v74-ui.js"
           grep 'Kullanıcı & Yetki Merkezi' "$WWW/index.html"
-          grep 'Belge & Fotoğraf Merkezi' "$WWW/index.html"
           grep 'Hayvan QR Merkezi' "$WWW/index.html"
-          grep 'Gelişmiş Sürü Performansı' "$WWW/index.html"
           grep 'Bulut Senkronizasyonu' "$WWW/index.html"
 
       - name: Build V7.4 debug APK

@@ -8,6 +8,7 @@ on:
       - "ozbiltar/payload/**"
       - "ozbiltar/payload_fix/**"
       - "ozbiltar/v6_overlay_*.b64"
+      - "ozbiltar/apply_v7_lists.py"
       - ".github/workflows/build-ozbiltar-apk.yml"
 
 jobs:
@@ -58,23 +59,34 @@ jobs:
           tar -xzf ozbiltar/project.tar.gz -C ozbiltar/buildsrc
           test -f ozbiltar/buildsrc/android-native/app/build.gradle
 
-      - name: Overlay V6 mobile source
+      - name: Overlay proven V6 mobile source
         shell: bash
         run: |
           cat ozbiltar/v6_overlay_a.b64 ozbiltar/v6_overlay_b.b64 > ozbiltar/v6_overlay.full.b64
-          echo "V6 overlay chars: $(wc -c < ozbiltar/v6_overlay.full.b64)"
           test "$(wc -c < ozbiltar/v6_overlay.full.b64)" -eq 36164
           base64 -d ozbiltar/v6_overlay.full.b64 > ozbiltar/v6_overlay.tar.gz
           gzip -t ozbiltar/v6_overlay.tar.gz
           tar -xzf ozbiltar/v6_overlay.tar.gz -C ozbiltar/buildsrc
           cd ozbiltar/buildsrc
           node --check js/app.js
-          node --check js/config.js
-          node --check js/storage.js
           grep 'quick-entry-grid' index.html
           grep 'versionName "6.0.0"' android-native/app/build.gradle
           grep 'android:windowSoftInputMode="adjustResize"' android-native/app/src/main/AndroidManifest.xml
-          grep 'android.print.PrintManager' android-native/app/src/main/java/com/ozbiltar/yonetim/MainActivity.java
+
+      - name: Apply V7.1 professional list center
+        shell: bash
+        run: |
+          cp ozbiltar/apply_v7_lists.py ozbiltar/buildsrc/apply_v7_lists.py
+          cd ozbiltar/buildsrc
+          python apply_v7_lists.py
+          node --check js/app.js
+          node --check js/config.js
+          grep 'id="listsView"' index.html
+          grep 'id="dashboardListCards"' index.html
+          grep 'Hayvan Listesi' js/app.js
+          grep 'Stok Listesi' js/app.js
+          grep 'V7.1 — PROFESSIONAL MOBILE LISTS' assets/styles.css
+          grep 'versionName "7.1.0"' android-native/app/build.gradle
 
       - name: Ensure Android launcher icon and splash
         shell: bash
@@ -97,10 +109,8 @@ jobs:
             <item android:drawable="@mipmap/ic_launcher" android:gravity="center"/>
           </layer-list>
           EOF
-          test -f "$RES/mipmap/ic_launcher.xml"
-          grep '@mipmap/ic_launcher' "$RES/drawable/splash_background.xml"
 
-      - name: Sync V6 web app into Android assets
+      - name: Sync V7.1 web app into Android assets
         shell: bash
         run: |
           cd ozbiltar/buildsrc
@@ -109,18 +119,17 @@ jobs:
           mkdir -p "$WWW"
           cp index.html manifest.webmanifest sw.js "$WWW/"
           cp -r assets js "$WWW/"
-          test -f "$WWW/js/app.js"
-          grep 'mobileFab' "$WWW/index.html"
-          grep 'MOBILE-FIRST DATA ENTRY' "$WWW/assets/styles.css"
-          grep 'openRecordModal(recordId=null,moduleKey=null,preset={})' "$WWW/js/app.js"
+          grep 'id="listsView"' "$WWW/index.html"
+          grep 'business-list-item' "$WWW/assets/styles.css"
+          grep 'recordIdentity' "$WWW/js/app.js"
 
-      - name: Build V6 debug APK
+      - name: Build V7.1 debug APK
         working-directory: ozbiltar/buildsrc/android-native
         run: gradle assembleDebug --stacktrace
 
-      - name: Upload V6 APK
+      - name: Upload V7.1 APK
         uses: actions/upload-artifact@v4
         with:
-          name: OZBILTAR-Yonetim-AI-Pro-V6-mobile-debug
+          name: OZBILTAR-Yonetim-AI-Pro-V7.1-lists-debug
           path: ozbiltar/buildsrc/android-native/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error

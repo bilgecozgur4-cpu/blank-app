@@ -8,7 +8,7 @@ on:
       - "ozbiltar/payload/**"
       - "ozbiltar/payload_fix/**"
       - "ozbiltar/v6_overlay_*.b64"
-      - "ozbiltar/apply_v7_lists.py"
+      - "ozbiltar/v7_2_overlay_*.b64"
       - ".github/workflows/build-ozbiltar-apk.yml"
 
 jobs:
@@ -70,23 +70,38 @@ jobs:
           cd ozbiltar/buildsrc
           node --check js/app.js
           grep 'quick-entry-grid' index.html
-          grep 'versionName "6.0.0"' android-native/app/build.gradle
           grep 'android:windowSoftInputMode="adjustResize"' android-native/app/src/main/AndroidManifest.xml
 
-      - name: Apply V7.1 professional list center
+      - name: Overlay and verify V7.2 application
         shell: bash
         run: |
-          cp ozbiltar/apply_v7_lists.py ozbiltar/buildsrc/apply_v7_lists.py
+          cat \
+            ozbiltar/v7_2_overlay_00.b64 \
+            ozbiltar/v7_2_overlay_01.b64 \
+            ozbiltar/v7_2_overlay_02.b64 \
+            ozbiltar/v7_2_overlay_03.b64 \
+            ozbiltar/v7_2_overlay_04.b64 \
+            > ozbiltar/v7_2_overlay.full.b64
+          echo "V7.2 overlay chars: $(wc -c < ozbiltar/v7_2_overlay.full.b64)"
+          test "$(wc -c < ozbiltar/v7_2_overlay.full.b64)" -eq 46456
+          base64 -d ozbiltar/v7_2_overlay.full.b64 > ozbiltar/v7_2_overlay.tar.gz
+          gzip -t ozbiltar/v7_2_overlay.tar.gz
+          echo "f1a6198d40ff41cbd8a1d95c13b5536878ee0d0a37ff6a360d9b5f0a1967b174  ozbiltar/v7_2_overlay.tar.gz" | sha256sum -c -
+          tar -xzf ozbiltar/v7_2_overlay.tar.gz -C ozbiltar/buildsrc
           cd ozbiltar/buildsrc
-          python apply_v7_lists.py
           node --check js/app.js
+          node --check js/storage.js
           node --check js/config.js
+          node --check js/quality.js
           grep 'id="listsView"' index.html
-          grep 'id="dashboardListCards"' index.html
-          grep 'Hayvan Listesi' js/app.js
-          grep 'Stok Listesi' js/app.js
-          grep 'V7.1 — PROFESSIONAL MOBILE LISTS' assets/styles.css
-          grep 'versionName "7.1.0"' android-native/app/build.gradle
+          grep 'id="qualityView"' index.html
+          grep 'Eksik Veri Merkezi' index.html
+          grep 'id="animalProfileView"' index.html
+          grep 'id="stockMovementPanel"' index.html
+          grep 'openAnimalProfile' js/app.js
+          grep 'openStockMovementModal' js/app.js
+          grep 'stockBaselines' js/storage.js
+          grep 'versionName "7.2.0"' android-native/app/build.gradle
 
       - name: Ensure Android launcher icon and splash
         shell: bash
@@ -110,7 +125,7 @@ jobs:
           </layer-list>
           EOF
 
-      - name: Sync V7.1 web app into Android assets
+      - name: Sync V7.2 web app into Android assets
         shell: bash
         run: |
           cd ozbiltar/buildsrc
@@ -119,17 +134,19 @@ jobs:
           mkdir -p "$WWW"
           cp index.html manifest.webmanifest sw.js "$WWW/"
           cp -r assets js "$WWW/"
-          grep 'id="listsView"' "$WWW/index.html"
-          grep 'business-list-item' "$WWW/assets/styles.css"
-          grep 'recordIdentity' "$WWW/js/app.js"
+          test -f "$WWW/js/quality.js"
+          grep 'animalProfileView' "$WWW/index.html"
+          grep 'stockMovementPanel' "$WWW/index.html"
+          grep 'Eksik Veri Merkezi' "$WWW/index.html"
+          grep 'openStockMovementModal' "$WWW/js/app.js"
 
-      - name: Build V7.1 debug APK
+      - name: Build V7.2 debug APK
         working-directory: ozbiltar/buildsrc/android-native
         run: gradle assembleDebug --stacktrace
 
-      - name: Upload V7.1 APK
+      - name: Upload V7.2 APK
         uses: actions/upload-artifact@v4
         with:
-          name: OZBILTAR-Yonetim-AI-Pro-V7.1-lists-debug
+          name: OZBILTAR-Yonetim-AI-Pro-V7.2-debug
           path: ozbiltar/buildsrc/android-native/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error

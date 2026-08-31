@@ -1,0 +1,46 @@
+name: Fetch React Native Debug Key
+
+on:
+  push:
+    branches:
+      - hma-cci-v2-apk-build
+    paths:
+      - '.github/workflows/fetch-rn-debug-key.yml'
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Find matching React Native debug keystore
+        shell: bash
+        run: |
+          set -euo pipefail
+          WANT='5E:8F:16:06:2E:A3:CD:2C:4A:0D:54:78:76:BA:A6:F3:8C:AB:F6:25'
+          urls=(
+            'https://raw.githubusercontent.com/facebook/react-native/v0.59.10/local-cli/templates/HelloWorld/android/app/debug.keystore'
+            'https://raw.githubusercontent.com/facebook/react-native/v0.60.6/template/android/app/debug.keystore'
+            'https://raw.githubusercontent.com/facebook/react-native/v0.61.5/template/android/app/debug.keystore'
+            'https://raw.githubusercontent.com/react-native-community/react-native-template-typescript/main/template/android/app/debug.keystore'
+            'https://raw.githubusercontent.com/facebook/react-native/main/packages/helloworld/android/app/debug.keystore'
+          )
+          found=0
+          for u in "${urls[@]}"; do
+            echo "Trying $u"
+            if curl -L --fail --silent --show-error -o candidate.keystore "$u"; then
+              fp=$(keytool -list -v -keystore candidate.keystore -storepass android -alias androiddebugkey 2>/dev/null | awk -F': ' '/SHA1:/{print $2; exit}' || true)
+              echo "Fingerprint: $fp"
+              if [ "$fp" = "$WANT" ]; then
+                mv candidate.keystore react-native-debug.keystore
+                found=1
+                break
+              fi
+            fi
+          done
+          test "$found" -eq 1
+          keytool -list -v -keystore react-native-debug.keystore -storepass android -alias androiddebugkey | grep -E 'SHA1:|SHA256:'
+      - name: Upload matching keystore
+        uses: actions/upload-artifact@v4
+        with:
+          name: react-native-debug-keystore
+          path: react-native-debug.keystore
+          retention-days: 1

@@ -59,22 +59,27 @@ jobs:
           CI: '1'
         run: npx expo prebuild --platform android --non-interactive
 
-      - name: Build debug APK
+      - name: Build standalone release APK
         working-directory: /tmp/hma-src/HMA_CCI_Borsa_App/android
+        env:
+          NODE_ENV: production
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+          ./gradlew assembleRelease --no-daemon
 
       - name: Collect APK
         run: |
+          set -euo pipefail
           mkdir -p hma-cci-build/output
-          cp /tmp/hma-src/HMA_CCI_Borsa_App/android/app/build/outputs/apk/debug/app-debug.apk hma-cci-build/output/HMA_CCI_Borsa_v2.0.apk
-          ls -lh hma-cci-build/output/HMA_CCI_Borsa_v2.0.apk
+          APK=$(find /tmp/hma-src/HMA_CCI_Borsa_App/android/app/build/outputs/apk/release -name '*.apk' | head -n 1)
+          test -n "$APK"
+          cp "$APK" hma-cci-build/output/HMA_CCI_Borsa_v2.0_STANDALONE.apk
+          ls -lh hma-cci-build/output/HMA_CCI_Borsa_v2.0_STANDALONE.apk
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: HMA_CCI_Borsa_v2.0_APK
-          path: hma-cci-build/output/HMA_CCI_Borsa_v2.0.apk
+          name: HMA_CCI_Borsa_v2.0_STANDALONE_APK
+          path: hma-cci-build/output/HMA_CCI_Borsa_v2.0_STANDALONE.apk
           if-no-files-found: error
           retention-days: 7

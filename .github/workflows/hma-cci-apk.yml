@@ -17,15 +17,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Reassemble source package
+      - name: Reassemble complete source package
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p /tmp/hma-src
+          test "$(find hma-cci-build/payload -name 'part*.b64' | wc -l)" -eq 6
           cat hma-cci-build/payload/part*.b64 | base64 --decode > /tmp/hma-app.zip
+          unzip -t /tmp/hma-app.zip
           unzip -q /tmp/hma-app.zip -d /tmp/hma-src
           test -f /tmp/hma-src/HMA_CCI_Borsa_App/package.json
-          unzip -t /tmp/hma-app.zip
 
       - name: Setup Node
         uses: actions/setup-node@v4

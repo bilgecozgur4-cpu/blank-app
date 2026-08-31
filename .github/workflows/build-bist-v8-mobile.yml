@@ -1,0 +1,63 @@
+name: Build BIST V8 Mobile APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - "bist-v8-mobile/**"
+      - ".github/workflows/build-bist-v8-mobile.yml"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Set up Gradle 8.9
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+
+      - name: Reconstruct and verify source
+        shell: bash
+        run: |
+          rm -rf bist-v8-mobile/buildsrc
+          mkdir -p bist-v8-mobile/buildsrc
+          cat \
+            bist-v8-mobile/payload/part00.b64 \
+            bist-v8-mobile/payload/part01.b64 \
+            bist-v8-mobile/payload/part02.b64 \
+            > bist-v8-mobile/source.b64
+          test "$(wc -c < bist-v8-mobile/source.b64)" -eq 54524
+          base64 -d bist-v8-mobile/source.b64 > bist-v8-mobile/source.tar.gz
+          echo "be8425e3f1940d1469dd7d6370e6d93f47567676e8f61da2563a1a2323314304  bist-v8-mobile/source.tar.gz" | sha256sum -c -
+          gzip -t bist-v8-mobile/source.tar.gz
+          tar -xzf bist-v8-mobile/source.tar.gz -C bist-v8-mobile/buildsrc --strip-components=1
+          python -m py_compile bist-v8-mobile/buildsrc/app/src/main/python/engine.py
+          grep 'BIST Güzel Hisse Seçici' bist-v8-mobile/buildsrc/app/src/main/assets/index.html
+          grep 'com.chaquo.python' bist-v8-mobile/buildsrc/app/build.gradle
+          grep 'versionName "8.0.0-mobile"' bist-v8-mobile/buildsrc/app/build.gradle
+
+      - name: Build debug APK
+        working-directory: bist-v8-mobile/buildsrc
+        run: gradle assembleDebug --stacktrace
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: BIST-Guzel-Hisse-Secici-V8-Mobile-debug
+          path: bist-v8-mobile/buildsrc/app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error

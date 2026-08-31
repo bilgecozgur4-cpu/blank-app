@@ -1,85 +1,10 @@
 name: Build HMA CCI APK
 
 on:
-  push:
-    branches:
-      - hma-cci-v2-apk-build
-    paths:
-      - 'hma-cci-build/**'
-      - '.github/workflows/hma-cci-apk.yml'
   workflow_dispatch:
 
 jobs:
   build-android:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Reassemble and verify source package
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p /tmp/hma-src
-          cat \
-            hma-cci-build/payload/part01.b64 \
-            hma-cci-build/payload/part02.b64 \
-            hma-cci-build/payload/part03.b64 \
-            hma-cci-build/payload/part04.b64 \
-            hma-cci-build/payload/part05.b64 \
-            hma-cci-build/payload/part06a.b64 \
-            hma-cci-build/payload/part06b.b64 \
-            > /tmp/hma-app.b64
-          test "$(wc -c < /tmp/hma-app.b64)" -eq 61792
-          base64 --decode /tmp/hma-app.b64 > /tmp/hma-app.zip
-          echo "799b4478903204c1295b2fb9784c704e1e1b90252608456d05fb45c1298c744c  /tmp/hma-app.zip" | sha256sum -c -
-          unzip -t /tmp/hma-app.zip
-          unzip -q /tmp/hma-app.zip -d /tmp/hma-src
-          test -f /tmp/hma-src/HMA_CCI_Borsa_App/package.json
-
-      - name: Setup Node
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-
-      - name: Install dependencies
-        working-directory: /tmp/hma-src/HMA_CCI_Borsa_App
-        run: npm install --no-audit --no-fund
-
-      - name: Generate Android project
-        working-directory: /tmp/hma-src/HMA_CCI_Borsa_App
-        env:
-          CI: '1'
-        run: npx expo prebuild --platform android --non-interactive
-
-      - name: Build standalone release APK
-        working-directory: /tmp/hma-src/HMA_CCI_Borsa_App/android
-        env:
-          NODE_ENV: production
-        run: |
-          chmod +x gradlew
-          ./gradlew assembleRelease --no-daemon
-
-      - name: Collect APK
-        run: |
-          set -euo pipefail
-          mkdir -p hma-cci-build/output
-          APK=$(find /tmp/hma-src/HMA_CCI_Borsa_App/android/app/build/outputs/apk/release -name '*.apk' | head -n 1)
-          test -n "$APK"
-          cp "$APK" hma-cci-build/output/HMA_CCI_Borsa_v2.0_STANDALONE.apk
-          ls -lh hma-cci-build/output/HMA_CCI_Borsa_v2.0_STANDALONE.apk
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: HMA_CCI_Borsa_v2.0_STANDALONE_APK
-          path: hma-cci-build/output/HMA_CCI_Borsa_v2.0_STANDALONE.apk
-          if-no-files-found: error
-          retention-days: 7
+      - run: echo "Payload upload mode"

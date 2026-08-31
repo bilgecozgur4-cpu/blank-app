@@ -1,0 +1,69 @@
+name: Build HMA CCI APK
+
+on:
+  push:
+    branches:
+      - hma-cci-v2-apk-build
+    paths:
+      - 'hma-cci-build/**'
+      - '.github/workflows/hma-cci-apk.yml'
+  workflow_dispatch:
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Reassemble source package
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p /tmp/hma-src
+          cat hma-cci-build/payload/part*.b64 | base64 --decode > /tmp/hma-app.zip
+          unzip -q /tmp/hma-app.zip -d /tmp/hma-src
+          test -f /tmp/hma-src/HMA_CCI_Borsa_App/package.json
+          unzip -t /tmp/hma-app.zip
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Install dependencies
+        working-directory: /tmp/hma-src/HMA_CCI_Borsa_App
+        run: npm install --no-audit --no-fund
+
+      - name: Generate Android project
+        working-directory: /tmp/hma-src/HMA_CCI_Borsa_App
+        env:
+          CI: '1'
+        run: npx expo prebuild --platform android --non-interactive
+
+      - name: Build debug APK
+        working-directory: /tmp/hma-src/HMA_CCI_Borsa_App/android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Collect APK
+        run: |
+          mkdir -p hma-cci-build/output
+          cp /tmp/hma-src/HMA_CCI_Borsa_App/android/app/build/outputs/apk/debug/app-debug.apk hma-cci-build/output/HMA_CCI_Borsa_v2.0.apk
+          ls -lh hma-cci-build/output/HMA_CCI_Borsa_v2.0.apk
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: HMA_CCI_Borsa_v2.0_APK
+          path: hma-cci-build/output/HMA_CCI_Borsa_v2.0.apk
+          if-no-files-found: error
+          retention-days: 7

@@ -17,13 +17,23 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Reassemble complete source package
+      - name: Reassemble and verify source package
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p /tmp/hma-src
-          test "$(find hma-cci-build/payload -name 'part*.b64' | wc -l)" -eq 6
-          cat hma-cci-build/payload/part*.b64 | base64 --decode > /tmp/hma-app.zip
+          cat \
+            hma-cci-build/payload/part01.b64 \
+            hma-cci-build/payload/part02.b64 \
+            hma-cci-build/payload/part03.b64 \
+            hma-cci-build/payload/part04.b64 \
+            hma-cci-build/payload/part05.b64 \
+            hma-cci-build/payload/part06a.b64 \
+            hma-cci-build/payload/part06b.b64 \
+            > /tmp/hma-app.b64
+          test "$(wc -c < /tmp/hma-app.b64)" -eq 61792
+          base64 --decode /tmp/hma-app.b64 > /tmp/hma-app.zip
+          echo "799b4478903204c1295b2fb9784c704e1e1b90252608456d05fb45c1298c744c  /tmp/hma-app.zip" | sha256sum -c -
           unzip -t /tmp/hma-app.zip
           unzip -q /tmp/hma-app.zip -d /tmp/hma-src
           test -f /tmp/hma-src/HMA_CCI_Borsa_App/package.json

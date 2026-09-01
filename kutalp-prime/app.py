@@ -26,7 +26,7 @@ st.markdown(
 )
 
 st.markdown('<div class="k-title">KUTALP PRIME</div>', unsafe_allow_html=True)
-st.markdown('<div class="k-sub">Kişisel Yapay Zekâ Başdanışman · V0.1</div>', unsafe_allow_html=True)
+st.markdown('<div class="k-sub">Kişisel Yapay Zekâ Başdanışman · V0.3 · Metin Konsolu</div>', unsafe_allow_html=True)
 
 with st.sidebar:
     st.subheader("Çekirdek")
@@ -85,7 +85,7 @@ with chat_tab:
 
 with memory_tab:
     st.subheader("Kullanıcı kontrollü uzun dönem hafıza")
-    st.caption("KUTALP V0.1 bilgiyi kendi kafasına göre kalıcılaştırmaz. Sen eklersin, sen silersin.")
+    st.caption("KUTALP V0.3 bilgiyi kendi kafasına göre kalıcılaştırmaz. Sen eklersin, sen silersin.")
 
     with st.form("memory_form", clear_on_submit=True):
         memory_text = st.text_area("Hatırlanacak bilgi")
@@ -109,7 +109,7 @@ with memory_tab:
                 st.rerun()
 
 with system_tab:
-    st.subheader("V0.1 durum")
+    st.subheader("V0.3 durum")
     st.markdown(
         """
 - ✅ Yerel SQLite uzun dönem hafıza
@@ -118,10 +118,12 @@ with system_tab:
 - ✅ Karar geçmişi kaydı
 - ✅ Telefon uyumlu web arayüzü
 - ✅ OpenAI Responses API bağlantısı
-- ⏭️ V0.2: gerçek zamanlı ses + wake word
-- ⏭️ V0.3: Gmail / Takvim / GitHub araçları
+- ✅ V0.3 PWA: gerçek zamanlı WebRTC ses
+- ✅ İzinli yerel araçlar + görevler + tahmin defteri
+- ✅ Araç audit log
 - ⏭️ V0.4: görüntü, gözlük ve kamera algısı
 - ⏭️ V0.5: yerel GPU modeli + vektör hafıza
+- ⏭️ V0.6: Gmail / Takvim / GitHub bağlayıcıları
 - ⏭️ V1.0: çoklu uzman ajan orkestrasyonu
 """
     )

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 from typing import Iterable
@@ -68,10 +69,12 @@ def _call_model(instructions: str, user_input: str, timeout: float = 90.0) -> st
     if not key:
         raise RuntimeError("OPENAI_API_KEY is not configured")
     model = os.getenv("KUTALP_MODEL", "gpt-5.6-terra")
+    user_id = os.getenv("KUTALP_USER_ID", "local-owner").encode("utf-8")
     payload = {
         "model": model,
         "instructions": instructions,
         "input": user_input,
+        "safety_identifier": hashlib.sha256(user_id).hexdigest(),
     }
     headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
     with httpx.Client(timeout=timeout) as client:

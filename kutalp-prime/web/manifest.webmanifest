@@ -1,0 +1,12 @@
+{
+  "name": "KUTALP PRIME",
+  "short_name": "KUTALP",
+  "description": "Kişisel Yapay Zekâ Başdanışman",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#080c12",
+  "theme_color": "#0c1118",
+  "icons": [
+    {"src": "/static/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable"}
+  ]
+}

@@ -1,45 +1,75 @@
-# KUTALP PRIME V0.1
+# KUTALP PRIME V0.3
 
-KUTALP PRIME, kişisel yapay zekâ başdanışman çekirdeğinin ilk çalışan sürümüdür. Amaç yalnızca sohbet etmek değil; kullanıcı kontrollü uzun dönem hafıza, bilimsel düşünme, karşı-argüman (Red Team) ve ileride gerçek araç/donanım entegrasyonuna açık bir temel kurmaktır.
+KUTALP PRIME is a personal AI chief-adviser architecture: realtime voice, scientific decision support, explicit long-term memory, permissioned tools and a measurable prediction ledger.
 
-## V0.1 özellikleri
+## What works now
 
-- Streamlit tabanlı mobil uyumlu arayüz
-- SQLite uzun dönem hafıza
-- OpenAI Responses API entegrasyonu
-- Bilimsel mod: hipotez / kanıt / belirsizlik / test odaklı yaklaşım
-- Red Team: cevabı ikinci bağımsız çağrıyla eleştirir
-- Karar geçmişini yerel veritabanına kaydeder
-- API anahtarı yokken güvenli offline çekirdek açılır
+- **Realtime speech-to-speech** in a browser/mobile PWA over WebRTC
+- **Text chief adviser** using the Responses API
+- **Independent Red Team** critique for text decisions
+- **Local SQLite memory** controlled by the user
+- **Tool permission system** with approval cards for writes/destructive actions
+- **Task ledger**
+- **Prediction calibration ledger** with Brier score
+- **Tool audit log**
+- **Installable PWA** for Android/home-screen use
+- **API key kept server-side**
 
-## Kurulum
+## Install
 
 ```bash
 cd kutalp-prime
 python -m venv .venv
 # Windows: .venv\\Scripts\\activate
-# Linux/macOS: source .venv/bin/activate
+# Linux/macOS/Termux: source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env
 ```
 
-`.env` dosyasına kendi anahtarını ekle:
+Edit `.env`:
 
 ```env
-OPENAI_API_KEY=...
+OPENAI_API_KEY=YOUR_KEY
 KUTALP_MODEL=gpt-5.6-terra
+KUTALP_REALTIME_MODEL=gpt-realtime-2.1
+KUTALP_VOICE=marin
 ```
 
-Çalıştır:
+## Run the new voice/PWA interface
+
+```bash
+python run.py
+```
+
+Open:
+
+```text
+http://127.0.0.1:8765
+```
+
+If the server runs on a PC and you want to open KUTALP from a phone on the same private Wi-Fi:
+
+```env
+KUTALP_HOST=0.0.0.0
+KUTALP_ACCESS_TOKEN=choose-a-long-random-secret
+```
+
+Then open the PC's LAN IP on port 8765 and enter the same local access token in KUTALP's System tab. **That plain-HTTP LAN URL is suitable for the dashboard, but phone microphone/PWA features generally require a secure context (HTTPS) when the origin is not localhost.** For immediate Android voice use, the easiest path is to run KUTALP directly in Termux and open `http://127.0.0.1:8765` on the same phone. If KUTALP runs on another machine, put trusted HTTPS in front of it before expecting microphone/PWA behavior to work reliably.
+
+## Legacy text interface
+
+The V0.1 Streamlit UI remains available:
 
 ```bash
 streamlit run app.py
 ```
 
-Telefonda aynı Wi-Fi ağından erişmek için bilgisayarın yerel IP adresini kullanabilir veya güvenli bir deployment servisine kurabilirsin. API anahtarını hiçbir zaman frontend koduna veya GitHub'a commit etme.
+## Important limitation
 
-## Mimari yön
+A PWA can do excellent live voice while it is open, but it is **not a trustworthy always-on background wake-word service on Android**. A native Android foreground service with a local wake-word model is planned for the native phase. KUTALP does not pretend otherwise.
 
-V0.2 ses, V0.3 gerçek araçlar, V0.4 görüş/kamera, V0.5 yerel GPU ve vektör hafıza, V1.0 ise çoklu uzman ajan orkestrasyonudur.
+## Architecture
 
-**Prensip:** Güzel konuşmak başarı ölçütü değildir. KUTALP; doğruluk, hata önleme, zaman kazancı, karar kalitesi ve ölçülebilir sonuçlarla değerlendirilecektir.
+Read `ARCHITECTURE.md`, `SECURITY.md`, `HARDWARE_ROADMAP.md`, `CONNECTORS.md` and `ROADMAP.md`.
+
+**Core principle:** KUTALP is scored by accuracy, calibration, prevented mistakes, completed work and time saved—not by how impressive its conversation sounds.

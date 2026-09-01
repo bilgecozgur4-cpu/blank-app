@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#0c1118" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <title>KUTALP PRIME</title>
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="icon" href="/static/icon.svg" />
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <div class="brand">KUTALP PRIME</div>
+      <div class="subtitle">Kişisel Yapay Zekâ Başdanışman · V0.3</div>
+    </div>
+    <div id="statusPill" class="pill offline">OFFLINE</div>
+  </header>
+
+  <main class="shell">
+    <nav class="tabs" aria-label="KUTALP bölümleri">
+      <button class="tab active" data-tab="voice">Ses</button>
+      <button class="tab" data-tab="text">Yazı</button>
+      <button class="tab" data-tab="memory">Hafıza</button>
+      <button class="tab" data-tab="tasks">Görevler</button>
+      <button class="tab" data-tab="science">Bilim</button>
+      <button class="tab" data-tab="system">Sistem</button>
+    </nav>
+
+    <section id="voice" class="panel tabpage active">
+      <div class="hero-card">
+        <div class="orb" id="orb"><div class="orb-core"></div></div>
+        <h1>Canlı KUTALP</h1>
+        <p class="muted">WebRTC üzerinden gerçek zamanlı konuşma. Mikrofon yalnızca canlı oturum açıkken kullanılır.</p>
+        <div class="actions">
+          <button id="connectBtn" class="primary">Canlı oturumu başlat</button>
+          <button id="muteBtn" class="secondary" disabled>Mikrofonu kapat</button>
+        </div>
+        <div class="mini-grid">
+          <div><span>Ses modeli</span><strong id="realtimeModel">—</strong></div>
+          <div><span>Ses</span><strong id="voiceName">—</strong></div>
+          <div><span>Araçlar</span><strong id="toolCount">—</strong></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Canlı kayıt</div>
+        <div id="liveTranscript" class="transcript"><div class="muted">Henüz oturum yok.</div></div>
+        <form id="realtimeTextForm" class="composer">
+          <input id="realtimeText" autocomplete="off" placeholder="Canlı oturuma yazılı mesaj gönder…" disabled />
+          <button class="secondary" type="submit" disabled id="realtimeSend">Gönder</button>
+        </form>
+      </div>
+
+      <div id="approvalArea" class="approval-area"></div>
+    </section>
+
+    <section id="text" class="panel tabpage">
+      <div class="card">
+        <div class="card-title">Başdanışman</div>
+        <div class="toggles">
+          <label><input id="scientificToggle" type="checkbox" checked /> Bilimsel mod</label>
+          <label><input id="redTeamToggle" type="checkbox" checked /> Red Team</label>
+        </div>
+        <div id="chatLog" class="chat-log"></div>
+        <form id="chatForm" class="composer">
+          <textarea id="chatInput" rows="2" placeholder="KUTALP'a sor…"></textarea>
+          <button class="primary" type="submit">Analiz et</button>
+        </form>
+      </div>
+    </section>
+
+    <section id="memory" class="panel tabpage">
+      <div class="card">
+        <div class="card-title">Kullanıcı kontrollü uzun dönem hafıza</div>
+        <p class="muted">KUTALP kişisel bilgiyi kendi başına kalıcılaştırmaz. Yazma/silme işlemleri açık onaya bağlıdır.</p>
+        <form id="memoryForm" class="stack-form">
+          <textarea id="memoryText" rows="3" placeholder="Hatırlanacak bilgi"></textarea>
+          <select id="memoryKind">
+            <option value="general">general</option>
+            <option value="goal">goal</option>
+            <option value="preference">preference</option>
+            <option value="project">project</option>
+            <option value="rule">rule</option>
+            <option value="user_note">user_note</option>
+          </select>
+          <button class="primary" type="submit">Hafızaya ekle</button>
+        </form>
+        <div id="memoryList" class="list"></div>
+      </div>
+    </section>
+
+    <section id="tasks" class="panel tabpage">
+      <div class="card">
+        <div class="card-title">Görev defteri</div>
+        <p class="muted">Sesli KUTALP “şunu görev yap” dediğinde önce senden onay ister.</p>
+        <button id="refreshTasks" class="secondary">Yenile</button>
+        <div id="taskList" class="list"></div>
+      </div>
+    </section>
+
+    <section id="science" class="panel tabpage">
+      <div class="card">
+        <div class="card-title">Tahmin Kalibrasyonu</div>
+        <p class="muted">KUTALP'in “%70 ihtimal” gibi tahminlerini kaydedip sonuçlandığında Brier skoru ile ölçeriz. Düşük skor daha iyidir.</p>
+        <div class="metric"><span>Çözümlenen tahmin</span><strong id="resolvedPredictions">0</strong></div>
+        <div class="metric"><span>Ortalama Brier</span><strong id="avgBrier">—</strong></div>
+        <button id="refreshPredictions" class="secondary">Yenile</button>
+        <div id="predictionList" class="list"></div>
+      </div>
+    </section>
+
+    <section id="system" class="panel tabpage">
+      <div class="card">
+        <div class="card-title">Sistem</div>
+        <div id="systemInfo" class="system-info"></div>
+        <label class="field">
+          <span>Yerel erişim anahtarı (opsiyonel)</span>
+          <input id="accessToken" type="password" placeholder="KUTALP_ACCESS_TOKEN kullanıyorsan buraya gir" />
+        </label>
+        <div class="actions">
+          <button id="saveToken" class="secondary">Kaydet</button>
+          <button id="reloadConfig" class="secondary">Bağlantıyı yenile</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <audio id="remoteAudio" autoplay></audio>
+  <div id="toast" class="toast" role="status"></div>
+  <script src="/static/app.js"></script>
+</body>
+</html>

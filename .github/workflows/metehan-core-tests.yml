@@ -1,20 +1,21 @@
-name: KUTALP PRIME tests
+name: METEHAN core tests
 
 on:
   push:
+    branches: [metehan-v0.4-native]
     paths:
-      - 'kutalp-prime/**'
-      - '.github/workflows/kutalp-prime-tests.yml'
+      - 'metehan-core/**'
+      - '.github/workflows/metehan-core-tests.yml'
   pull_request:
     paths:
-      - 'kutalp-prime/**'
+      - 'metehan-core/**'
 
 jobs:
   test:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: kutalp-prime
+        working-directory: metehan-core
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

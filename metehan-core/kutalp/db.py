@@ -46,7 +46,7 @@ def _now() -> str:
 
 
 def _db_path() -> Path:
-    return Path(os.getenv("KUTALP_DB", "kutalp_prime.db"))
+    return Path(os.getenv("METEHAN_DB", os.getenv("KUTALP_DB", "metehan.db")))
 
 
 def connect() -> sqlite3.Connection:
@@ -55,6 +55,33 @@ def connect() -> sqlite3.Connection:
     conn.execute("PRAGMA foreign_keys=ON")
     conn.execute("PRAGMA busy_timeout=5000")
     return conn
+
+
+def _init_fts(conn: sqlite3.Connection) -> None:
+    try:
+        conn.executescript(
+            """
+            CREATE VIRTUAL TABLE IF NOT EXISTS memories_fts
+            USING fts5(text, kind, content='memories', content_rowid='id');
+
+            CREATE TRIGGER IF NOT EXISTS memories_ai AFTER INSERT ON memories BEGIN
+                INSERT INTO memories_fts(rowid, text, kind) VALUES (new.id, new.text, new.kind);
+            END;
+            CREATE TRIGGER IF NOT EXISTS memories_ad AFTER DELETE ON memories BEGIN
+                INSERT INTO memories_fts(memories_fts, rowid, text, kind)
+                VALUES ('delete', old.id, old.text, old.kind);
+            END;
+            CREATE TRIGGER IF NOT EXISTS memories_au AFTER UPDATE ON memories BEGIN
+                INSERT INTO memories_fts(memories_fts, rowid, text, kind)
+                VALUES ('delete', old.id, old.text, old.kind);
+                INSERT INTO memories_fts(rowid, text, kind) VALUES (new.id, new.text, new.kind);
+            END;
+            """
+        )
+        conn.execute("INSERT INTO memories_fts(memories_fts) VALUES ('rebuild')")
+    except sqlite3.OperationalError:
+        # Some minimal SQLite builds may not include FTS5. Lexical fallback remains available.
+        pass
 
 
 def init_db() -> None:
@@ -112,6 +139,7 @@ def init_db() -> None:
             CREATE INDEX IF NOT EXISTS idx_predictions_status ON predictions(status);
             """
         )
+        _init_fts(conn)
         conn.commit()
 
 
@@ -145,25 +173,50 @@ def delete_memory(memory_id: int) -> None:
         conn.commit()
 
 
-def relevant_memories(query: str, limit: int = 8) -> list[Memory]:
-    """Small local lexical retriever. Vector memory is a later upgrade."""
-    tokens = {
-        t.strip(".,!?;:()[]{}\"'").lower()
-        for t in query.split()
-        if len(t.strip(".,!?;:()[]{}\"'")) >= 3
-    }
-    memories = list_memories(limit=500)
-    if not tokens:
-        return memories[:limit]
+def _query_tokens(query: str) -> list[str]:
+    return sorted(
+        {
+            t.strip(".,!?;:()[]{}\"'").lower()
+            for t in query.split()
+            if len(t.strip(".,!?;:()[]{}\"'")) >= 3
+        }
+    )
 
-    scored: list[tuple[int, Memory]] = []
+
+def relevant_memories(query: str, limit: int = 8) -> list[Memory]:
+    limit = max(1, min(int(limit), 50))
+    tokens = _query_tokens(query)
+    if not tokens:
+        return list_memories(limit=limit)
+
+    match = " OR ".join(f'"{token.replace(chr(34), "")}"' for token in tokens)
+    try:
+        with connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT m.id, m.text, m.kind, m.created_at
+                FROM memories_fts
+                JOIN memories AS m ON m.id = memories_fts.rowid
+                WHERE memories_fts MATCH ?
+                ORDER BY bm25(memories_fts), m.id DESC
+                LIMIT ?
+                """,
+                (match, limit),
+            ).fetchall()
+        if rows:
+            return [Memory(**dict(r)) for r in rows]
+    except sqlite3.OperationalError:
+        pass
+
+    memories = list_memories(limit=500)
+    scored: list[tuple[int, int, Memory]] = []
     for memory in memories:
         lower = memory.text.lower()
         score = sum(1 for token in tokens if token in lower)
         if score:
-            scored.append((score, memory))
-    scored.sort(key=lambda x: (x[0], x[1].id), reverse=True)
-    return [m for _, m in scored[:limit]] or memories[: min(3, limit)]
+            scored.append((score, memory.id, memory))
+    scored.sort(key=lambda item: (item[0], item[1]), reverse=True)
+    return [memory for _, _, memory in scored[:limit]] or memories[: min(3, limit)]
 
 
 def add_decision(question: str, answer: str, red_team: str | None = None) -> int:

@@ -9,9 +9,8 @@
       return sendToolOutput(call.call_id, {ok:false, error:`Geçersiz araç argümanı: ${e.message}`});
     }
 
-    const meta = toolMeta.get(call.name);
-    if (meta?.client_side) {
-      addLiveLine(`Telefon eylemi önerildi: ${call.name}`, 'tool');
+    if (call.name === 'propose_android_action') {
+      addLiveLine('Telefon eylemi önerildi.', 'tool');
       if (window.AndroidMetehan?.proposeAction) {
         window.AndroidMetehan.proposeAction(call.call_id, JSON.stringify(args));
       } else {

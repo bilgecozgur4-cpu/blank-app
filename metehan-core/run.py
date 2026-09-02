@@ -6,6 +6,11 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# V0.3 compatibility: the database module still understands the legacy env key.
+# METEHAN_DB is authoritative for normal V0.4 startup.
+if os.getenv("METEHAN_DB"):
+    os.environ.setdefault("KUTALP_DB", os.environ["METEHAN_DB"])
+
 if __name__ == "__main__":
     uvicorn.run(
         "voice_server:app",

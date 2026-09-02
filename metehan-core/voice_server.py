@@ -15,8 +15,20 @@ from fastapi.responses import FileResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
+from kutalp.agent import plan_command
 from kutalp.brain import answer, api_configured, red_team
-from kutalp.db import add_decision, add_memory, delete_memory, init_db, list_memories, list_predictions, list_tasks, prediction_metrics, relevant_memories
+from kutalp.db import (
+    add_audit,
+    add_decision,
+    add_memory,
+    delete_memory,
+    init_db,
+    list_memories,
+    list_predictions,
+    list_tasks,
+    prediction_metrics,
+    relevant_memories,
+)
 from kutalp.realtime import REALTIME_API, safety_identifier, session_config_json
 from kutalp.tools import execute_tool, tool_metadata
 
@@ -24,7 +36,7 @@ load_dotenv()
 init_db()
 BASE_DIR = Path(__file__).resolve().parent
 WEB_DIR = BASE_DIR / "web"
-app = FastAPI(title="METEHAN", version="0.4")
+app = FastAPI(title="METEHAN", version="0.5")
 app.mount("/static", StaticFiles(directory=WEB_DIR), name="static")
 
 
@@ -47,6 +59,20 @@ class ChatRequest(BaseModel):
     use_red_team: bool = True
 
 
+class AgentCommandRequest(BaseModel):
+    message: str = Field(min_length=1, max_length=12000)
+    device_context: dict[str, Any] = Field(default_factory=dict)
+
+
+class DeviceActionResultRequest(BaseModel):
+    action_type: str = Field(min_length=1, max_length=80)
+    label: str = Field(default="", max_length=240)
+    target: str = Field(default="", max_length=4000)
+    approved: bool
+    executed: bool
+    detail: str = Field(default="", max_length=2000)
+
+
 class ToolRequest(BaseModel):
     name: str
     arguments: dict[str, Any] | str = Field(default_factory=dict)
@@ -61,7 +87,11 @@ class MemoryRequest(BaseModel):
 class VisionRequest(BaseModel):
     image_base64: str = Field(min_length=16, max_length=12_000_000)
     mime_type: str = "image/jpeg"
-    prompt: str = Field(default="Görüntüyü dikkatle incele. Gözlem, çıkarım ve belirsizliği birbirinden ayır; önemli ayrıntıları ve gerekiyorsa sonraki doğrulama adımını Türkçe açıkla.", min_length=1, max_length=4000)
+    prompt: str = Field(
+        default="Görüntüyü dikkatle incele. Gözlem, çıkarım ve belirsizliği birbirinden ayır; önemli ayrıntıları ve gerekiyorsa sonraki doğrulama adımını Türkçe açıkla.",
+        min_length=1,
+        max_length=4000,
+    )
 
 
 @app.get("/")
@@ -81,20 +111,24 @@ async def service_worker() -> FileResponse:
 
 @app.get("/health")
 async def health() -> dict[str, Any]:
-    return {"ok": True, "service": "METEHAN", "version": "0.4"}
+    return {"ok": True, "service": "METEHAN", "version": "0.5"}
 
 
 @app.get("/api/config")
 async def config(request: Request) -> dict[str, Any]:
     _check_access(request)
     return {
-        "version": "0.4", "service": "METEHAN", "api_configured": api_configured(),
+        "version": "0.5",
+        "service": "METEHAN",
+        "api_configured": api_configured(),
         "text_model": _env("METEHAN_MODEL", "KUTALP_MODEL", "gpt-5.6-terra"),
         "realtime_model": _env("METEHAN_REALTIME_MODEL", "KUTALP_REALTIME_MODEL", "gpt-realtime-2.1"),
         "vision_model": _env("METEHAN_VISION_MODEL", "KUTALP_MODEL", "gpt-5.6-terra"),
         "voice": _env("METEHAN_VOICE", "KUTALP_VOICE", "marin"),
         "access_token_required": bool(_env("METEHAN_ACCESS_TOKEN", "KUTALP_ACCESS_TOKEN").strip()),
-        "tools": tool_metadata(), "prediction_metrics": prediction_metrics(),
+        "tools": tool_metadata(),
+        "prediction_metrics": prediction_metrics(),
+        "native_agent_actions": True,
     }
 
 
@@ -129,6 +163,31 @@ async def chat(req: ChatRequest, request: Request) -> dict[str, Any]:
         return JSONResponse(status_code=500, content={"ok": False, "error": f"{type(exc).__name__}: {exc}"})
 
 
+@app.post("/api/agent-command")
+async def agent_command(req: AgentCommandRequest, request: Request) -> dict[str, Any]:
+    _check_access(request)
+    memories = relevant_memories(req.message)
+    try:
+        plan = await asyncio.to_thread(plan_command, req.message, req.device_context, memories)
+        await asyncio.to_thread(add_decision, req.message, plan.get("reply", ""), json.dumps(plan.get("action", {}), ensure_ascii=False))
+        return plan
+    except Exception as exc:
+        return JSONResponse(status_code=500, content={"ok": False, "error": f"{type(exc).__name__}: {exc}"})
+
+
+@app.post("/api/device-action-result")
+async def device_action_result(req: DeviceActionResultRequest, request: Request) -> dict[str, Any]:
+    _check_access(request)
+    await asyncio.to_thread(
+        add_audit,
+        f"android_action:{req.action_type}",
+        {"label": req.label, "target": req.target},
+        {"executed": req.executed, "detail": req.detail},
+        req.approved,
+    )
+    return {"ok": True}
+
+
 def _extract_response_text(data: dict[str, Any]) -> str:
     out: list[str] = []
     for item in data.get("output", []) or []:
@@ -158,7 +217,16 @@ async def vision(req: VisionRequest, request: Request) -> dict[str, Any]:
     payload = {
         "model": _env("METEHAN_VISION_MODEL", "KUTALP_MODEL", "gpt-5.6-terra"),
         "instructions": "You are METEHAN's visual analyst. Be evidence-oriented. Separate direct visual observations from inference. Never claim certainty about details that the image cannot establish.",
-        "input": [{"role": "user", "content": [{"type": "input_text", "text": req.prompt}, {"type": "input_image", "image_url": f"data:{req.mime_type};base64,{req.image_base64}"}]}],
+        "input": [
+            {
+                "role": "user",
+                "content": [
+                    {"type": "input_text", "text": req.prompt},
+                    {"type": "input_image", "image_url": f"data:{req.mime_type};base64,{req.image_base64}"},
+                ],
+            }
+        ],
+        "store": False,
         "safety_identifier": safety_identifier(),
     }
     headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
@@ -174,32 +242,51 @@ async def run_tool(req: ToolRequest, request: Request) -> dict[str, Any]:
     _check_access(request)
     args = req.arguments
     if isinstance(args, str):
-        try: args = json.loads(args) if args.strip() else {}
-        except json.JSONDecodeError as exc: return {"ok": False, "error": f"Invalid tool JSON: {exc}"}
+        try:
+            args = json.loads(args) if args.strip() else {}
+        except json.JSONDecodeError as exc:
+            return {"ok": False, "error": f"Invalid tool JSON: {exc}"}
     return await asyncio.to_thread(execute_tool, req.name, args, req.approved)
 
 
 @app.get("/api/memories")
 async def memories(request: Request) -> list[dict[str, Any]]:
-    _check_access(request); return [asdict(m) for m in list_memories(limit=200)]
+    _check_access(request)
+    return [asdict(m) for m in list_memories(limit=200)]
+
 
 @app.post("/api/memories")
 async def create_memory(req: MemoryRequest, request: Request) -> dict[str, Any]:
-    _check_access(request); mid = await asyncio.to_thread(add_memory, req.text, req.kind); return {"ok": True, "memory_id": mid}
+    _check_access(request)
+    mid = await asyncio.to_thread(add_memory, req.text, req.kind)
+    return {"ok": True, "memory_id": mid}
+
 
 @app.delete("/api/memories/{memory_id}")
 async def remove_memory(memory_id: int, request: Request) -> dict[str, Any]:
-    _check_access(request); await asyncio.to_thread(delete_memory, memory_id); return {"ok": True, "memory_id": memory_id}
+    _check_access(request)
+    await asyncio.to_thread(delete_memory, memory_id)
+    return {"ok": True, "memory_id": memory_id}
+
 
 @app.get("/api/tasks")
 async def tasks(request: Request, status: str | None = "open") -> list[dict[str, Any]]:
-    _check_access(request); return [asdict(t) for t in list_tasks(status=status, limit=200)]
+    _check_access(request)
+    return [asdict(t) for t in list_tasks(status=status, limit=200)]
+
 
 @app.get("/api/predictions")
 async def predictions(request: Request, status: str | None = "open") -> dict[str, Any]:
-    _check_access(request); return {"items": [asdict(p) for p in list_predictions(status=status, limit=200)], "metrics": prediction_metrics()}
+    _check_access(request)
+    return {"items": [asdict(p) for p in list_predictions(status=status, limit=200)], "metrics": prediction_metrics()}
 
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("voice_server:app", host=_env("METEHAN_HOST", "KUTALP_HOST", "127.0.0.1"), port=int(_env("METEHAN_PORT", "KUTALP_PORT", "8765")), reload=False)
+
+    uvicorn.run(
+        "voice_server:app",
+        host=_env("METEHAN_HOST", "KUTALP_HOST", "127.0.0.1"),
+        port=int(_env("METEHAN_PORT", "KUTALP_PORT", "8765")),
+        reload=False,
+    )

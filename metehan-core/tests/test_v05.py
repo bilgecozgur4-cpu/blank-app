@@ -1,8 +1,9 @@
 import os
 import tempfile
 import unittest
+from pathlib import Path
 
-from kutalp import agent, db
+from kutalp import agent, db, realtime
 
 
 class MetehanV05Tests(unittest.TestCase):
@@ -61,6 +62,31 @@ class MetehanV05Tests(unittest.TestCase):
         )
         self.assertTrue(plan["needs_confirmation"])
         self.assertEqual(plan["action"]["type"], "open_settings")
+
+    def test_realtime_exposes_only_confirmed_android_action_proposal(self):
+        tools = realtime.session_config()["tools"]
+        native = [tool for tool in tools if tool.get("name") == "propose_android_action"]
+        self.assertEqual(len(native), 1)
+        action_enum = native[0]["parameters"]["properties"]["type"]["enum"]
+        self.assertIn("open_settings", action_enum)
+        self.assertNotIn("send_message", action_enum)
+        self.assertNotIn("purchase", action_enum)
+
+    def test_live_panel_contract(self):
+        web = Path(__file__).resolve().parents[1] / "web"
+        html = (web / "index.html").read_text(encoding="utf-8")
+        required_ids = {
+            "statusPill", "connectBtn", "muteBtn", "remoteAudio", "orb",
+            "liveTranscript", "realtimeTextForm", "realtimeText", "realtimeSend",
+            "chatForm", "chatInput", "chatLog", "scientificToggle", "redTeamToggle",
+            "systemInfo", "accessToken", "saveToken", "reloadConfig",
+            "realtimeModel", "voiceName", "toolCount", "taskList", "refreshTasks",
+            "resolvedPredictions", "avgBrier", "predictionList", "refreshPredictions",
+            "memoryForm", "memoryText", "memoryKind", "memoryList", "approvalArea",
+        }
+        for element_id in required_ids:
+            self.assertIn(f'id="{element_id}"', html, element_id)
+        self.assertIn('/static/native.js', html)
 
 
 if __name__ == "__main__":

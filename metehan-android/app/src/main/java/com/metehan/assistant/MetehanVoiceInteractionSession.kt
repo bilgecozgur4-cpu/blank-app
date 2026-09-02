@@ -6,10 +6,18 @@ import android.os.Bundle
 import android.service.voice.VoiceInteractionSession
 
 class MetehanVoiceInteractionSession(context: Context) : VoiceInteractionSession(context) {
-    override fun onPrepareShow(args: Bundle?, showFlags: Int) { super.onPrepareShow(args, showFlags); setUiEnabled(false) }
+    override fun onPrepareShow(args: Bundle?, showFlags: Int) {
+        super.onPrepareShow(args, showFlags)
+        setUiEnabled(false)
+    }
+
     override fun onShow(args: Bundle?, showFlags: Int) {
         super.onShow(args, showFlags)
-        val intent = Intent(context, MetehanPanelActivity::class.java).putExtra(MetehanPanelActivity.EXTRA_AUTOSTART, true).putExtra("wake_keyword", args?.getString("keyword") ?: "")
-        startAssistantActivity(intent); hide()
+        val intent = Intent(context, CommandCenterActivity::class.java)
+            .putExtra("auto_speech", true)
+            .putExtra("auto_speak", true)
+            .putExtra("wake_keyword", args?.getString("keyword") ?: "")
+        startAssistantActivity(intent)
+        hide()
     }
 }

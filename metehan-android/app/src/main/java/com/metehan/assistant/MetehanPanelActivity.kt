@@ -19,7 +19,13 @@ class MetehanPanelActivity : AppCompatActivity() {
         if (!CorePrefs.isSafeUrl(base)) { Toast.makeText(this, "Güvensiz çekirdek adresi engellendi", Toast.LENGTH_LONG).show(); finish(); return }
         val web = WebView(this); setContentView(web)
         web.settings.javaScriptEnabled = true; web.settings.domStorageEnabled = true; web.settings.mediaPlaybackRequiresUserGesture = false
-        web.webViewClient = WebViewClient()
+        val autoStart = intent.getBooleanExtra(EXTRA_AUTOSTART, false)
+        web.webViewClient = object : WebViewClient() {
+            override fun onPageFinished(view: WebView, url: String) {
+                super.onPageFinished(view, url)
+                if (autoStart) view.postDelayed({ view.evaluateJavascript("if (typeof connectRealtime === 'function' && !pc) connectRealtime();", null) }, 500)
+            }
+        }
         web.webChromeClient = object : WebChromeClient() {
             override fun onPermissionRequest(request: PermissionRequest) {
                 val host = request.origin.host
@@ -28,6 +34,6 @@ class MetehanPanelActivity : AppCompatActivity() {
                 if (safe && mic) request.grant(request.resources) else request.deny()
             }
         }
-        web.loadUrl(base + if (intent.getBooleanExtra(EXTRA_AUTOSTART, false)) "/?autostart=1" else "/")
+        web.loadUrl(base + if (autoStart) "/?autostart=1" else "/")
     }
 }

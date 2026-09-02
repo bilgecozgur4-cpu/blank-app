@@ -82,7 +82,7 @@ class MainActivity : AppCompatActivity() {
             setTextColor(Color.rgb(237, 244, 255))
         })
         box.addView(TextView(this).apply {
-            text = "Termux veya 127.0.0.1 sunucusu gerekmez. API anahtarı Android Keystore ile cihazda şifrelenir."
+            text = "AI doğrudan uygulamanın içinde çalışır. API anahtarı Android Keystore ile cihazda şifrelenir."
             textSize = 14f
             setTextColor(Color.rgb(137, 152, 170))
             setPadding(0, dp(6), 0, dp(10))
@@ -108,19 +108,20 @@ class MainActivity : AppCompatActivity() {
             if (entered.isNotBlank()) SecurePrefs.saveApiKey(this, entered)
             SecurePrefs.saveModel(this, model.text?.toString().orEmpty())
             apiKey.setText("")
+
             if (!SecurePrefs.hasApiKey(this)) {
                 Toast.makeText(this, "Önce API anahtarını gir", Toast.LENGTH_LONG).show()
                 updateStatus()
-                return@button
+            } else {
+                Thread {
+                    val msg = runCatching { StandaloneAiClient(this).testConnection() }
+                        .fold({ it }, { "API hatası: ${it.message}" })
+                    runOnUiThread {
+                        Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
+                        updateStatus()
+                    }
+                }.start()
             }
-            Thread {
-                val msg = runCatching { StandaloneAiClient(this).testConnection() }
-                    .fold({ it }, { "API hatası: ${it.message}" })
-                runOnUiThread {
-                    Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
-                    updateStatus()
-                }
-            }.start()
         })
 
         box.addView(button("YEREL SOHBET GEÇMİŞİNİ TEMİZLE") {

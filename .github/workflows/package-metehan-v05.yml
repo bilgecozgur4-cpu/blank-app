@@ -1,0 +1,35 @@
+name: Package METEHAN V0.5 Core
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [metehan-v0.5-agent]
+    paths:
+      - 'metehan-core/**'
+      - 'METEHAN_KURULUM.md'
+      - '.github/workflows/package-metehan-v05.yml'
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build clean Termux package
+        run: |
+          mkdir -p package/METEHAN_CORE_V0_5
+          cp -R metehan-core/. package/METEHAN_CORE_V0_5/
+          cp METEHAN_KURULUM.md package/METEHAN_CORE_V0_5/
+          find package -type d \( -name '__pycache__' -o -name '.pytest_cache' -o -name '.git' \) -prune -exec rm -rf {} + || true
+          find package -type f \( -name '*.pyc' -o -name '.env' -o -name 'metehan.db' -o -name 'kutalp_prime.db' \) -delete || true
+          cd package
+          zip -r ../METEHAN_CORE_V0_5_TERMUX.zip METEHAN_CORE_V0_5
+      - name: Hash package
+        run: sha256sum METEHAN_CORE_V0_5_TERMUX.zip | tee METEHAN_CORE_V0_5_TERMUX.zip.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: METEHAN_CORE_V0_5_TERMUX
+          path: |
+            METEHAN_CORE_V0_5_TERMUX.zip
+            METEHAN_CORE_V0_5_TERMUX.zip.sha256
+          if-no-files-found: error
+          retention-days: 30

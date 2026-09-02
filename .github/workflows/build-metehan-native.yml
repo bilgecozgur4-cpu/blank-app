@@ -3,7 +3,7 @@ name: Build METEHAN Native APK
 on:
   workflow_dispatch:
   push:
-    branches: [metehan-v0.5-agent]
+    branches: [metehan-v0.6-standalone]
     paths:
       - 'metehan-android/**'
       - '.github/workflows/build-metehan-native.yml'
@@ -29,6 +29,13 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.13'
+      - name: Verify standalone source and logo
+        run: |
+          test -f metehan-android/app/src/main/res/drawable-nodpi/metehan_splash.jpg
+          test -f metehan-android/app/src/main/res/drawable-nodpi/metehan_icon.jpg
+          grep -q "StandaloneAiClient" metehan-android/app/src/main/java/com/metehan/assistant/CommandCenterActivity.kt
+          grep -q "Standalone beyin" metehan-android/app/src/main/java/com/metehan/assistant/MainActivity.kt
+          if grep -q "127.0.0.1" metehan-android/app/src/main/java/com/metehan/assistant/MainActivity.kt; then exit 1; fi
       - name: Prepare local METEHAN wake-word model
         run: bash metehan-android/prepare_kws.sh
       - name: Build debug APK
@@ -37,11 +44,11 @@ jobs:
       - name: Stage APK
         run: |
           mkdir -p artifacts
-          cp metehan-android/app/build/outputs/apk/debug/app-debug.apk artifacts/Metehan-v0.5-debug.apk
-          sha256sum artifacts/Metehan-v0.5-debug.apk | tee artifacts/Metehan-v0.5-debug.apk.sha256
+          cp metehan-android/app/build/outputs/apk/debug/app-debug.apk artifacts/Metehan-v0.6-standalone-debug.apk
+          sha256sum artifacts/Metehan-v0.6-standalone-debug.apk | tee artifacts/Metehan-v0.6-standalone-debug.apk.sha256
       - uses: actions/upload-artifact@v4
         with:
-          name: Metehan-v0.5-debug-apk
+          name: Metehan-v0.6-standalone-debug-apk
           path: artifacts/*
           if-no-files-found: error
           retention-days: 30

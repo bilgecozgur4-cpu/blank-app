@@ -17,23 +17,78 @@
     <main>
       <section class="hero card">
         <div id="orb" class="orb"><div class="orb-core"></div></div>
-        <div><h2>Komuta merkezi</h2><p>Bilimsel düşünme · Red Team · uzun dönem hafıza · canlı ses · araçlar</p></div>
+        <div><h2>Komuta merkezi</h2><p>Bilimsel düşünme · Red Team · FTS hafıza · canlı ses · onaylı native eylemler</p></div>
         <button id="connectBtn" class="primary">Canlı oturumu başlat</button>
-        <button id="muteBtn" disabled>Mikrofonu sustur</button>
+        <button id="muteBtn" disabled>Mikrofonu kapat</button>
         <audio id="remoteAudio" autoplay></audio>
       </section>
-      <section class="card"><h3>Canlı konuşma</h3><div id="liveTranscript" class="transcript"><div class="muted">Metehan hazır.</div></div><div class="inline"><input id="realtimeText" placeholder="Canlı oturuma yaz…" disabled/><button id="realtimeSend" disabled>Gönder</button></div></section>
-      <section class="grid-two">
-        <section class="card"><h3>Metin komuta</h3><textarea id="chatInput" placeholder="Metehan'a sor..."></textarea><div class="inline"><label><input id="scientific" type="checkbox" checked/> Bilimsel</label><label><input id="redTeam" type="checkbox" checked/> Red Team</label><button id="chatSend">Analiz et</button></div><div id="chatOutput" class="output"></div></section>
-        <section class="card"><h3>Sistem</h3><div id="systemInfo"></div><label>Erişim anahtarı<input id="accessToken" type="password" placeholder="opsiyonel"/></label><button id="saveToken">Kaydet</button></section>
+
+      <section class="card">
+        <h3>Canlı konuşma</h3>
+        <div id="liveTranscript" class="transcript"><div class="muted">Metehan hazır.</div></div>
+        <form id="realtimeTextForm" class="inline">
+          <input id="realtimeText" placeholder="Canlı oturuma yaz…" disabled />
+          <button id="realtimeSend" type="submit" disabled>Gönder</button>
+        </form>
       </section>
-      <section class="grid-three"><section class="card metric"><span>Realtime</span><strong id="realtimeModel">—</strong></section><section class="card metric"><span>Ses</span><strong id="voiceName">—</strong></section><section class="card metric"><span>Araç</span><strong id="toolCount">—</strong></section></section>
-      <section class="grid-two"><section class="card"><h3>Görevler</h3><div id="tasks"></div><button id="refreshTasks">Yenile</button></section><section class="card"><h3>Tahmin kalibrasyonu</h3><div><span>Çözülen tahmin: </span><strong id="resolvedPredictions">0</strong></div><div><span>Ortalama Brier: </span><strong id="avgBrier">—</strong></div><div id="predictions"></div><button id="refreshPredictions">Yenile</button></section></section>
-      <section class="card"><h3>Uzun dönem hafıza</h3><div id="memories"></div><button id="refreshMemories">Yenile</button></section>
-      <section class="card"><h3>Onay bekleyen işlemler</h3><div id="approvalQueue" class="approval-list"><div class="muted">Bekleyen işlem yok.</div></div></section>
+
+      <section class="grid-two">
+        <section class="card">
+          <h3>Metin komuta</h3>
+          <form id="chatForm">
+            <textarea id="chatInput" placeholder="Metehan'a sor..."></textarea>
+            <div class="inline">
+              <label><input id="scientificToggle" type="checkbox" checked /> Bilimsel</label>
+              <label><input id="redTeamToggle" type="checkbox" checked /> Red Team</label>
+              <button type="submit">Analiz et</button>
+            </div>
+          </form>
+          <div id="chatLog" class="transcript"><div class="muted">Hazır.</div></div>
+        </section>
+        <section class="card">
+          <h3>Sistem</h3>
+          <div id="systemInfo"></div>
+          <label>Erişim anahtarı<input id="accessToken" type="password" placeholder="opsiyonel" /></label>
+          <div class="inline"><button id="saveToken">Kaydet</button><button id="reloadConfig">Yenile</button></div>
+        </section>
+      </section>
+
+      <section class="grid-three">
+        <section class="card metric"><span>Realtime</span><strong id="realtimeModel">—</strong></section>
+        <section class="card metric"><span>Ses</span><strong id="voiceName">—</strong></section>
+        <section class="card metric"><span>Araç</span><strong id="toolCount">—</strong></section>
+      </section>
+
+      <section class="grid-two">
+        <section class="card"><h3>Görevler</h3><div id="taskList"></div><button id="refreshTasks">Yenile</button></section>
+        <section class="card"><h3>Tahmin kalibrasyonu</h3><div><span>Çözülen tahmin: </span><strong id="resolvedPredictions">0</strong></div><div><span>Ortalama Brier: </span><strong id="avgBrier">—</strong></div><div id="predictionList"></div><button id="refreshPredictions">Yenile</button></section>
+      </section>
+
+      <section class="card">
+        <h3>Uzun dönem hafıza</h3>
+        <form id="memoryForm" class="inline">
+          <input id="memoryText" placeholder="Kullanıcı onaylı hafıza ekle…" />
+          <select id="memoryKind">
+            <option value="general">genel</option>
+            <option value="goal">hedef</option>
+            <option value="preference">tercih</option>
+            <option value="project">proje</option>
+            <option value="rule">kural</option>
+            <option value="user_note">not</option>
+          </select>
+          <button type="submit">Kaydet</button>
+        </form>
+        <div id="memoryList"></div>
+      </section>
+
+      <section class="card">
+        <h3>Onay bekleyen işlemler</h3>
+        <div id="approvalArea" class="approval-list"><div class="muted">Bekleyen işlem yok.</div></div>
+      </section>
     </main>
   </div>
   <div id="toast" class="toast"></div>
   <script src="/static/app.js"></script>
+  <script src="/static/native.js"></script>
 </body>
 </html>

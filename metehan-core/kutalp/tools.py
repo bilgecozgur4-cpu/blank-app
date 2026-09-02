@@ -27,8 +27,8 @@ class ToolSpec:
 
 def _status(_: dict[str, Any]) -> dict[str, Any]:
     return {
-        "service": "KUTALP PRIME",
-        "version": "0.3",
+        "service": "METEHAN",
+        "version": "0.4",
         "python": platform.python_version(),
         "platform": platform.platform(),
         "api_configured": bool(os.getenv("OPENAI_API_KEY", "").strip()),
@@ -91,142 +91,71 @@ def _resolve_prediction(args: dict[str, Any]) -> dict[str, Any]:
 TOOLS: dict[str, ToolSpec] = {
     "get_system_status": ToolSpec(
         name="get_system_status",
-        description="Read KUTALP PRIME local system status. This is read-only.",
-        parameters={
-            "type": "object",
-            "properties": {},
-            "required": [],
-            "additionalProperties": False,
-        },
+        description="Read METEHAN local system status. This is read-only.",
+        parameters={"type": "object", "properties": {}, "required": [], "additionalProperties": False},
         requires_approval=False,
         handler=_status,
     ),
     "search_memory": ToolSpec(
         name="search_memory",
         description="Search the user's explicitly saved local long-term memory. Read-only.",
-        parameters={
-            "type": "object",
-            "properties": {"query": {"type": "string"}},
-            "required": ["query"],
-            "additionalProperties": False,
-        },
+        parameters={"type": "object", "properties": {"query": {"type": "string"}}, "required": ["query"], "additionalProperties": False},
         requires_approval=False,
         handler=_search_memory,
     ),
     "save_memory": ToolSpec(
         name="save_memory",
         description="Save a user-approved fact, goal, preference, project note or rule to long-term memory. Never call for sensitive data unless the user explicitly asks to save it.",
-        parameters={
-            "type": "object",
-            "properties": {
-                "text": {"type": "string"},
-                "kind": {
-                    "type": "string",
-                    "enum": ["general", "goal", "preference", "project", "rule", "user_note"],
-                },
-            },
-            "required": ["text", "kind"],
-            "additionalProperties": False,
-        },
+        parameters={"type": "object", "properties": {"text": {"type": "string"}, "kind": {"type": "string", "enum": ["general", "goal", "preference", "project", "rule", "user_note"]}}, "required": ["text", "kind"], "additionalProperties": False},
         requires_approval=True,
         handler=_save_memory,
     ),
     "delete_memory": ToolSpec(
         name="delete_memory",
         description="Delete one long-term memory by ID. This is destructive and requires approval.",
-        parameters={
-            "type": "object",
-            "properties": {"memory_id": {"type": "integer"}},
-            "required": ["memory_id"],
-            "additionalProperties": False,
-        },
+        parameters={"type": "object", "properties": {"memory_id": {"type": "integer"}}, "required": ["memory_id"], "additionalProperties": False},
         requires_approval=True,
         handler=_delete_memory,
     ),
     "create_task": ToolSpec(
         name="create_task",
         description="Create a local task for the user. Requires user approval before writing.",
-        parameters={
-            "type": "object",
-            "properties": {
-                "title": {"type": "string"},
-                "notes": {"type": ["string", "null"]},
-                "due_at": {"type": ["string", "null"], "description": "ISO date/time or human-readable date, or null"},
-            },
-            "required": ["title", "notes", "due_at"],
-            "additionalProperties": False,
-        },
+        parameters={"type": "object", "properties": {"title": {"type": "string"}, "notes": {"type": ["string", "null"]}, "due_at": {"type": ["string", "null"], "description": "ISO date/time or human-readable date, or null"}}, "required": ["title", "notes", "due_at"], "additionalProperties": False},
         requires_approval=True,
         handler=_create_task,
     ),
     "list_tasks": ToolSpec(
         name="list_tasks",
         description="List local tasks. Read-only.",
-        parameters={
-            "type": "object",
-            "properties": {
-                "status": {"type": ["string", "null"], "enum": ["open", "done", None]},
-            },
-            "required": ["status"],
-            "additionalProperties": False,
-        },
+        parameters={"type": "object", "properties": {"status": {"type": ["string", "null"], "enum": ["open", "done", None]}}, "required": ["status"], "additionalProperties": False},
         requires_approval=False,
         handler=_list_tasks,
     ),
     "complete_task": ToolSpec(
         name="complete_task",
         description="Mark a local task as completed. Requires user approval.",
-        parameters={
-            "type": "object",
-            "properties": {"task_id": {"type": "integer"}},
-            "required": ["task_id"],
-            "additionalProperties": False,
-        },
+        parameters={"type": "object", "properties": {"task_id": {"type": "integer"}}, "required": ["task_id"], "additionalProperties": False},
         requires_approval=True,
         handler=_complete_task,
     ),
     "record_prediction": ToolSpec(
         name="record_prediction",
-        description="Record a falsifiable forecast with a calibrated probability so KUTALP can later score its accuracy scientifically. Requires approval.",
-        parameters={
-            "type": "object",
-            "properties": {
-                "statement": {"type": "string"},
-                "probability": {"type": "number", "minimum": 0, "maximum": 1},
-                "due_at": {"type": ["string", "null"]},
-            },
-            "required": ["statement", "probability", "due_at"],
-            "additionalProperties": False,
-        },
+        description="Record a falsifiable forecast with a calibrated probability so METEHAN can later score its accuracy scientifically. Requires approval.",
+        parameters={"type": "object", "properties": {"statement": {"type": "string"}, "probability": {"type": "number", "minimum": 0, "maximum": 1}, "due_at": {"type": ["string", "null"]}}, "required": ["statement", "probability", "due_at"], "additionalProperties": False},
         requires_approval=True,
         handler=_record_prediction,
     ),
     "list_predictions": ToolSpec(
         name="list_predictions",
-        description="List KUTALP's recorded predictions and calibration metric. Read-only.",
-        parameters={
-            "type": "object",
-            "properties": {
-                "status": {"type": ["string", "null"], "enum": ["open", "resolved", None]},
-            },
-            "required": ["status"],
-            "additionalProperties": False,
-        },
+        description="List METEHAN's recorded predictions and calibration metric. Read-only.",
+        parameters={"type": "object", "properties": {"status": {"type": ["string", "null"], "enum": ["open", "resolved", None]}}, "required": ["status"], "additionalProperties": False},
         requires_approval=False,
         handler=_list_predictions,
     ),
     "resolve_prediction": ToolSpec(
         name="resolve_prediction",
         description="Resolve a recorded prediction as true or false and calculate its Brier score. Requires approval.",
-        parameters={
-            "type": "object",
-            "properties": {
-                "prediction_id": {"type": "integer"},
-                "outcome": {"type": "boolean"},
-            },
-            "required": ["prediction_id", "outcome"],
-            "additionalProperties": False,
-        },
+        parameters={"type": "object", "properties": {"prediction_id": {"type": "integer"}, "outcome": {"type": "boolean"}}, "required": ["prediction_id", "outcome"], "additionalProperties": False},
         requires_approval=True,
         handler=_resolve_prediction,
     ),
@@ -238,14 +167,7 @@ def realtime_tools() -> list[dict[str, Any]]:
 
 
 def tool_metadata() -> list[dict[str, Any]]:
-    return [
-        {
-            "name": spec.name,
-            "description": spec.description,
-            "requires_approval": spec.requires_approval,
-        }
-        for spec in TOOLS.values()
-    ]
+    return [{"name": spec.name, "description": spec.description, "requires_approval": spec.requires_approval} for spec in TOOLS.values()]
 
 
 def execute_tool(name: str, arguments: dict[str, Any], approved: bool = False) -> dict[str, Any]:
@@ -254,22 +176,14 @@ def execute_tool(name: str, arguments: dict[str, Any], approved: bool = False) -
         result = {"ok": False, "error": f"Unknown tool: {name}"}
         db.add_audit(name, arguments, result, approved=False)
         return result
-
     if spec.requires_approval and not approved:
-        result = {
-            "ok": False,
-            "approval_required": True,
-            "tool": name,
-            "message": "User approval is required before this action can run.",
-        }
+        result = {"ok": False, "approval_required": True, "tool": name, "message": "User approval is required before this action can run."}
         db.add_audit(name, arguments, result, approved=False)
         return result
-
     try:
         data = spec.handler(arguments)
         result = {"ok": True, "data": data}
     except Exception as exc:
         result = {"ok": False, "error": f"{type(exc).__name__}: {exc}"}
-
     db.add_audit(name, arguments, result, approved=approved or not spec.requires_approval)
     return result

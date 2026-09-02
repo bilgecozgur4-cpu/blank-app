@@ -10,10 +10,10 @@ let toolMeta = new Map();
 const handledCalls = new Set();
 let liveAssistantLine = null;
 
-function token() { return localStorage.getItem('kutalp_access_token') || ''; }
+function token() { return localStorage.getItem('metehan_access_token') || ''; }
 function authHeaders(extra = {}) {
   const h = { ...extra };
-  if (token()) h['X-Kutalp-Token'] = token();
+  if (token()) h['X-Metehan-Token'] = token();
   return h;
 }
 function toast(msg) {
@@ -106,7 +106,7 @@ async function connectRealtime() {
       $('#realtimeText').disabled = false;
       $('#realtimeSend').disabled = false;
       $('#orb').classList.add('live');
-      addLiveLine('Canlı KUTALP oturumu açıldı.', 'system');
+      addLiveLine('Canlı METEHAN oturumu açıldı.', 'system');
     };
     dc.onmessage = (ev) => {
       try { handleRealtimeEvent(JSON.parse(ev.data)); }
@@ -336,15 +336,24 @@ $('#chatForm').onsubmit = (e) => { e.preventDefault(); const v=$('#chatInput'); 
 $('#memoryForm').onsubmit = async (e) => {
   e.preventDefault();
   const text = $('#memoryText').value.trim(); if (!text) return;
-  if (!confirm('Bu bilgiyi KUTALP uzun dönem hafızasına kaydetsin mi?')) return;
+  if (!confirm('Bu bilgiyi METEHAN uzun dönem hafızasına kaydetsin mi?')) return;
   await api('/api/memories', {method:'POST', body:JSON.stringify({text, kind:$('#memoryKind').value})});
   $('#memoryText').value=''; toast('Hafızaya kaydedildi'); loadMemories();
 };
 $('#refreshTasks').onclick = loadTasks;
 $('#refreshPredictions').onclick = loadPredictions;
-$('#saveToken').onclick = () => { localStorage.setItem('kutalp_access_token', $('#accessToken').value.trim()); toast('Yerel erişim anahtarı kaydedildi'); loadConfig(); };
+$('#saveToken').onclick = () => { localStorage.setItem('metehan_access_token', $('#accessToken').value.trim()); toast('Yerel erişim anahtarı kaydedildi'); loadConfig(); };
 $('#reloadConfig').onclick = refreshAll;
 
 window.addEventListener('beforeunload', disconnectRealtime);
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(console.error);
 refreshAll();
+
+
+window.addEventListener('load', async () => {
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('autostart') === '1') {
+    await new Promise(r => setTimeout(r, 350));
+    if (!pc) connectRealtime();
+  }
+});

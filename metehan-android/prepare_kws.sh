@@ -17,6 +17,6 @@ HEY METEHAN :2.1 #0.35 @HEY_METEHAN
 ME TE HAN :2.0 #0.35 @ME_TE_HAN
 MEH TEH HAN :2.0 #0.35 @MEH_TEH_HAN
 KW
-python -m pip install --quiet "sherpa-onnx==1.13.4" click sentencepiece
+python -m pip install --quiet "sherpa-onnx==1.13.4" click sentencepiece pypinyin
 sherpa-onnx-cli text2token --tokens "$ASSETS/$MODEL/tokens.txt" --tokens-type bpe --bpe-model "$ASSETS/$MODEL/bpe.model" "$ASSETS/$MODEL/keywords_raw.txt" "$ASSETS/$MODEL/keywords.txt"
 echo "Metehan KWS assets ready."

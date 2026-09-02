@@ -2,7 +2,7 @@ name: METEHAN core tests
 
 on:
   push:
-    branches: [metehan-v0.4-native]
+    branches: [metehan-v0.5-agent]
     paths:
       - 'metehan-core/**'
       - '.github/workflows/metehan-core-tests.yml'

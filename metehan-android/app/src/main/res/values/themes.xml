@@ -2,5 +2,12 @@
     <style name="Theme.Metehan" parent="Theme.MaterialComponents.DayNight.NoActionBar">
         <item name="android:fontFamily">sans</item>
         <item name="android:windowLightStatusBar">false</item>
+        <item name="android:statusBarColor">#05080D</item>
+        <item name="android:navigationBarColor">#05080D</item>
+        <item name="android:windowBackground">#05080D</item>
+        <item name="colorPrimary">#7DD3FC</item>
+        <item name="colorOnPrimary">#05080D</item>
+        <item name="colorSurface">#0A1018</item>
+        <item name="colorOnSurface">#EDF4FF</item>
     </style>
 </resources>

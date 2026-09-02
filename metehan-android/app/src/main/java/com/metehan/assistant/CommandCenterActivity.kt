@@ -2,19 +2,21 @@ package com.metehan.assistant
 
 import android.app.AlertDialog
 import android.content.Intent
+import android.graphics.Color
 import android.os.Bundle
 import android.speech.RecognizerIntent
 import android.speech.tts.TextToSpeech
+import android.view.Gravity
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import org.json.JSONObject
 import java.util.Locale
 
 class CommandCenterActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
@@ -25,11 +27,19 @@ class CommandCenterActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private lateinit var speakButton: Button
     private var pendingPlan: AgentPlan? = null
     private var tts: TextToSpeech? = null
+    private var autoSubmitAfterSpeech = false
+    private var autoSpeakReply = false
 
     private val speechLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == RESULT_OK) {
             val text = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)?.firstOrNull()
-            if (!text.isNullOrBlank()) input.setText(text)
+            if (!text.isNullOrBlank()) {
+                input.setText(text)
+                if (autoSubmitAfterSpeech) {
+                    autoSubmitAfterSpeech = false
+                    submit()
+                }
+            }
         }
     }
 
@@ -37,57 +47,103 @@ class CommandCenterActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         super.onCreate(savedInstanceState)
         title = "METEHAN Komuta Merkezi"
         tts = TextToSpeech(this, this)
+        autoSpeakReply = intent.getBooleanExtra("auto_speak", false)
 
-        val scroll = ScrollView(this)
+        val scroll = ScrollView(this).apply { setBackgroundColor(Color.rgb(5, 8, 13)) }
         val box = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(40, 40, 40, 40)
+            setPadding(dp(22), dp(22), dp(22), dp(38))
+            setBackgroundColor(Color.rgb(5, 8, 13))
         }
         scroll.addView(box)
         setContentView(scroll)
 
-        box.addView(TextView(this).apply { text = "METEHAN"; textSize = 30f })
-        box.addView(TextView(this).apply { text = "Native Komuta Merkezi · V0.5"; textSize = 16f })
+        box.addView(ImageView(this).apply {
+            setImageResource(R.drawable.metehan_icon)
+            adjustViewBounds = true
+            scaleType = ImageView.ScaleType.FIT_CENTER
+            layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(145))
+        })
         box.addView(TextView(this).apply {
-            text = "Pil, şarj, ağ, saat dilimi ve cihaz durumunu bağlam olarak kullanır. Konumunu veya ekranını gizlice okumaz."
-            setPadding(0, 14, 0, 18)
+            text = "METEHAN"
+            textSize = 30f
+            gravity = Gravity.CENTER
+            setTextColor(Color.rgb(237, 244, 255))
+        })
+        box.addView(TextView(this).apply {
+            text = "Standalone Komuta Merkezi · V0.6"
+            textSize = 16f
+            gravity = Gravity.CENTER
+            setTextColor(Color.rgb(125, 211, 252))
+        })
+        box.addView(TextView(this).apply {
+            text = "Yerel hafıza + bilimsel karar mantığı + güvenli Android eylem kapısı. Eylemler senden onay almadan çalışmaz."
+            setTextColor(Color.rgb(137, 152, 170))
+            setPadding(0, dp(14), 0, dp(18))
         })
 
         input = EditText(this).apply {
             hint = "Ne yapmamı veya ne düşünmemi istiyorsun?"
             minLines = 3
+            setTextColor(Color.rgb(237, 244, 255))
+            setHintTextColor(Color.rgb(137, 152, 170))
+            setBackgroundColor(Color.rgb(10, 16, 24))
+            setPadding(dp(14), dp(14), dp(14), dp(14))
         }
         box.addView(input)
 
         val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        askButton = Button(this).apply { text = "METEHAN'a sor"; setOnClickListener { submit() } }
-        val micButton = Button(this).apply { text = "🎙 Söyle"; setOnClickListener { startSpeechInput() } }
+        askButton = styledButton("METEHAN'a sor") { submit() }
+        val micButton = styledButton("🎙 Söyle") { startSpeechInput(autoSubmit = false) }
         row.addView(askButton, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
         row.addView(micButton, LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f))
         box.addView(row)
 
-        resultText = TextView(this).apply { textSize = 18f; setPadding(0, 28, 0, 18) }
+        box.addView(styledButton("🧠 Bunu hafızaya al") {
+            val text = input.text.toString().trim()
+            if (text.isBlank()) Toast.makeText(this, "Önce hatırlanacak şeyi yaz", Toast.LENGTH_SHORT).show()
+            else {
+                MetehanLocalDb(this).remember(text)
+                Toast.makeText(this, "METEHAN hafızasına kaydedildi", Toast.LENGTH_SHORT).show()
+            }
+        })
+
+        resultText = TextView(this).apply {
+            textSize = 18f
+            setTextColor(Color.rgb(237, 244, 255))
+            setPadding(0, dp(28), 0, dp(18))
+        }
         box.addView(resultText)
 
-        speakButton = Button(this).apply {
-            text = "Cevabı seslendir"
-            visibility = View.GONE
-            setOnClickListener { speak(resultText.text.toString()) }
-        }
+        speakButton = styledButton("Cevabı seslendir") { speak(resultText.text.toString()) }.apply { visibility = View.GONE }
         box.addView(speakButton)
 
-        actionButton = Button(this).apply {
-            visibility = View.GONE
-            setOnClickListener { confirmAndExecute() }
-        }
+        actionButton = styledButton("Eylem") { confirmAndExecute() }.apply { visibility = View.GONE }
         box.addView(actionButton)
 
         intent.getStringExtra("prefill")?.takeIf { it.isNotBlank() }?.let { input.setText(it) }
+        if (intent.getBooleanExtra("auto_speech", false)) {
+            autoSpeakReply = true
+            scroll.postDelayed({ startSpeechInput(autoSubmit = true) }, 450)
+        }
     }
 
     private fun submit() {
         val message = input.text.toString().trim()
         if (message.isBlank()) return
+        if (!SecurePrefs.hasApiKey(this)) {
+            resultText.text = "OpenAI API anahtarı ayarlı değil. METEHAN ana ekranından API anahtarını bir kez kaydet."
+            return
+        }
+        if (message.lowercase(Locale("tr", "TR")).startsWith("hatırla ")) {
+            val memory = message.substringAfter(' ').trim()
+            MetehanLocalDb(this).remember(memory)
+            resultText.text = "Kaydettim. Bunu yerel hafızamda tutacağım."
+            speakButton.visibility = View.VISIBLE
+            if (autoSpeakReply) speak(resultText.text.toString())
+            return
+        }
+
         askButton.isEnabled = false
         actionButton.visibility = View.GONE
         speakButton.visibility = View.GONE
@@ -95,12 +151,12 @@ class CommandCenterActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         resultText.text = "METEHAN düşünüyor…"
         Thread {
             val response = runCatching {
-                CoreClient(this).command(message, DeviceContextCollector.collect(this))
+                StandaloneAiClient(this).command(message, DeviceContextCollector.collect(this))
             }
             runOnUiThread {
                 askButton.isEnabled = true
                 response.onSuccess { plan -> renderPlan(plan) }
-                    .onFailure { resultText.text = "Bağlantı hatası: ${it.message}" }
+                    .onFailure { resultText.text = "METEHAN hatası: ${it.message}" }
             }
         }.start()
     }
@@ -110,13 +166,12 @@ class CommandCenterActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         val confidence = (plan.confidence * 100).toInt().coerceIn(0, 100)
         resultText.text = "${plan.reply}\n\nGüven: %$confidence"
         speakButton.visibility = View.VISIBLE
+        if (autoSpeakReply) speak(plan.reply)
         if (plan.action.type != "none") {
             actionButton.text = "Önerilen eylem · ${plan.action.label.ifBlank { plan.action.type }}"
             actionButton.visibility = View.VISIBLE
             actionButton.isEnabled = true
-        } else {
-            actionButton.visibility = View.GONE
-        }
+        } else actionButton.visibility = View.GONE
     }
 
     private fun confirmAndExecute() {
@@ -126,33 +181,33 @@ class CommandCenterActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         AlertDialog.Builder(this)
             .setTitle("Eylemi onayla")
             .setMessage("${action.label.ifBlank { action.type }}$targetLine\n\nMETEHAN bunu ancak sen onaylarsan çalıştıracak.")
-            .setNegativeButton("Vazgeç") { _, _ -> reportAction(action, approved = false, executed = false, detail = "user_cancelled") }
+            .setNegativeButton("Vazgeç") { _, _ -> reportAction(action, false, false, "user_cancelled") }
             .setPositiveButton("Onayla") { _, _ ->
                 actionButton.isEnabled = false
                 val execution = ActionDispatcher.execute(this, action)
                 execution.onSuccess {
                     Toast.makeText(this, "Eylem açıldı", Toast.LENGTH_SHORT).show()
-                    reportAction(action, approved = true, executed = true, detail = "ok")
+                    reportAction(action, true, true, "ok")
                 }.onFailure {
                     Toast.makeText(this, "Eylem hatası: ${it.message}", Toast.LENGTH_LONG).show()
-                    reportAction(action, approved = true, executed = false, detail = it.message ?: "error")
+                    reportAction(action, true, false, it.message ?: "error")
                     actionButton.isEnabled = true
                 }
-            }
-            .show()
+            }.show()
     }
 
     private fun reportAction(action: AgentAction, approved: Boolean, executed: Boolean, detail: String) {
-        Thread { runCatching { CoreClient(this).reportAction(action, approved, executed, detail) } }.start()
+        StandaloneAiClient(this).reportAction(action, approved, executed, detail)
     }
 
-    private fun startSpeechInput() {
-        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+    private fun startSpeechInput(autoSubmit: Boolean) {
+        autoSubmitAfterSpeech = autoSubmit
+        val speechIntent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, "tr-TR")
             putExtra(RecognizerIntent.EXTRA_PROMPT, "METEHAN için komutunu söyle")
         }
-        runCatching { speechLauncher.launch(intent) }
+        runCatching { speechLauncher.launch(speechIntent) }
             .onFailure { Toast.makeText(this, "Konuşma tanıma kullanılamıyor", Toast.LENGTH_SHORT).show() }
     }
 
@@ -163,6 +218,16 @@ class CommandCenterActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private fun speak(text: String) {
         tts?.speak(text, TextToSpeech.QUEUE_FLUSH, null, "metehan_reply")
     }
+
+    private fun styledButton(label: String, onClick: () -> Unit) = Button(this).apply {
+        text = label
+        isAllCaps = false
+        setTextColor(Color.rgb(237, 244, 255))
+        setBackgroundColor(Color.rgb(18, 31, 45))
+        setOnClickListener { onClick() }
+    }
+
+    private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()
 
     override fun onDestroy() {
         tts?.stop()

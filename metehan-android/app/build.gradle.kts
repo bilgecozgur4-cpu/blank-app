@@ -11,8 +11,8 @@ android {
         applicationId = "com.metehan.assistant"
         minSdk = 29
         targetSdk = 36
-        versionCode = 5
-        versionName = "0.5.0"
+        versionCode = 6
+        versionName = "0.6.0"
     }
 
     buildTypes {

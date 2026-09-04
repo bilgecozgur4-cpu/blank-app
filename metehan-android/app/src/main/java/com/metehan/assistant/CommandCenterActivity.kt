@@ -17,6 +17,10 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.Locale
 
 class CommandCenterActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
@@ -71,14 +75,14 @@ class CommandCenterActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             setTextColor(Color.rgb(237, 244, 255))
         })
         box.addView(TextView(this).apply {
-            text = "Standalone Komuta Merkezi · V0.6"
+            text = "Ücretsiz Yerel Komuta Merkezi · V0.7"
             textSize = 16f
             gravity = Gravity.CENTER
             setTextColor(Color.rgb(125, 211, 252))
         })
         box.addView(TextView(this).apply {
-            text = "Yerel hafıza + bilimsel karar mantığı + güvenli Android eylem kapısı. Eylemler senden onay almadan çalışmaz."
-            setTextColor(Color.rgb(137, 152, 170))
+            text = "API yok · token ücreti yok. Telefon komutları model olmadan bile çalışır; genel sohbet yerel GGUF modelini kullanır."
+            setTextColor(Color.rgb(167, 243, 208))
             setPadding(0, dp(14), 0, dp(18))
         })
 
@@ -131,10 +135,7 @@ class CommandCenterActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     private fun submit() {
         val message = input.text.toString().trim()
         if (message.isBlank()) return
-        if (!SecurePrefs.hasApiKey(this)) {
-            resultText.text = "OpenAI API anahtarı ayarlı değil. METEHAN ana ekranından API anahtarını bir kez kaydet."
-            return
-        }
+
         if (message.lowercase(Locale("tr", "TR")).startsWith("hatırla ")) {
             val memory = message.substringAfter(' ').trim()
             MetehanLocalDb(this).remember(memory)
@@ -148,17 +149,21 @@ class CommandCenterActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
         actionButton.visibility = View.GONE
         speakButton.visibility = View.GONE
         pendingPlan = null
-        resultText.text = "METEHAN düşünüyor…"
-        Thread {
+        resultText.text = if (LocalModelManager.isReady(this)) "METEHAN yerel modelde düşünüyor…" else "METEHAN yerel komut motorunu kontrol ediyor…"
+
+        lifecycleScope.launch {
             val response = runCatching {
-                StandaloneAiClient(this).command(message, DeviceContextCollector.collect(this))
+                withContext(Dispatchers.IO) {
+                    OfflineLlmClient(this@CommandCenterActivity).command(message, DeviceContextCollector.collect(this@CommandCenterActivity))
+                }
             }
-            runOnUiThread {
-                askButton.isEnabled = true
-                response.onSuccess { plan -> renderPlan(plan) }
-                    .onFailure { resultText.text = "METEHAN hatası: ${it.message}" }
-            }
-        }.start()
+            askButton.isEnabled = true
+            response.onSuccess { plan -> renderPlan(plan) }
+                .onFailure {
+                    resultText.text = "METEHAN yerel motor hatası: ${it.message}\n\nAna ekrandaki SİSTEM TESTİ'ni çalıştır."
+                    speakButton.visibility = View.VISIBLE
+                }
+        }
     }
 
     private fun renderPlan(plan: AgentPlan) {
@@ -197,7 +202,7 @@ class CommandCenterActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
     }
 
     private fun reportAction(action: AgentAction, approved: Boolean, executed: Boolean, detail: String) {
-        StandaloneAiClient(this).reportAction(action, approved, executed, detail)
+        OfflineLlmClient(this).reportAction(action, approved, executed, detail)
     }
 
     private fun startSpeechInput(autoSubmit: Boolean) {
@@ -206,6 +211,7 @@ class CommandCenterActivity : AppCompatActivity(), TextToSpeech.OnInitListener {
             putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
             putExtra(RecognizerIntent.EXTRA_LANGUAGE, "tr-TR")
             putExtra(RecognizerIntent.EXTRA_PROMPT, "METEHAN için komutunu söyle")
+            putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
         }
         runCatching { speechLauncher.launch(speechIntent) }
             .onFailure { Toast.makeText(this, "Konuşma tanıma kullanılamıyor", Toast.LENGTH_SHORT).show() }

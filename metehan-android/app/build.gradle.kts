@@ -11,8 +11,12 @@ android {
         applicationId = "com.metehan.assistant"
         minSdk = 29
         targetSdk = 36
-        versionCode = 6
-        versionName = "0.6.0"
+        versionCode = 7
+        versionName = "0.7.0"
+
+        ndk {
+            abiFilters += listOf("arm64-v8a")
+        }
     }
 
     buildTypes {
@@ -45,4 +49,10 @@ dependencies {
 
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("com.github.k2-fsa:sherpa-onnx:v1.13.4")
+
+    // Tamamen ücretsiz, cihaz içi GGUF/llama.cpp çalışma motoru.
+    implementation("dev.ffmpegkit-maintained:llama-android:0.1.1")
+
+    // Ücretsiz, cihaz içi temel görüntü etiketleme.
+    implementation("com.google.mlkit:image-labeling:17.0.9")
 }

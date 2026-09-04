@@ -5,9 +5,9 @@ import android.app.role.RoleManager
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
+import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
-import android.text.InputType
 import android.view.Gravity
 import android.widget.Button
 import android.widget.ImageView
@@ -19,10 +19,10 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
-import com.google.android.material.textfield.TextInputEditText
 
 class MainActivity : AppCompatActivity() {
     private lateinit var status: TextView
+    private lateinit var modelStatus: TextView
     private var testWake: WakeWordController? = null
 
     private val permissionLauncher = registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { updateStatus() }
@@ -50,17 +50,25 @@ class MainActivity : AppCompatActivity() {
         })
 
         box.addView(TextView(this).apply {
-            text = "Kişisel Yapay Zekâ Başdanışman · Standalone V0.6"
+            text = "Kişisel Yapay Zekâ Başdanışman · Ücretsiz Yerel V0.7"
             textSize = 17f
             gravity = Gravity.CENTER
             setTextColor(Color.rgb(125, 211, 252))
             setPadding(0, 0, 0, dp(12))
         })
 
+        box.addView(TextView(this).apply {
+            text = "API anahtarı yok · token ücreti yok · sohbet modeli cihazda çalışır"
+            textSize = 14f
+            gravity = Gravity.CENTER
+            setTextColor(Color.rgb(167, 243, 208))
+            setPadding(0, 0, 0, dp(14))
+        })
+
         status = TextView(this).apply {
             textSize = 16f
             setTextColor(Color.rgb(237, 244, 255))
-            setPadding(0, dp(8), 0, dp(18))
+            setPadding(0, dp(8), 0, dp(14))
         }
         box.addView(status)
 
@@ -72,56 +80,85 @@ class MainActivity : AppCompatActivity() {
         })
         box.addView(button("2 · METEHAN'I VARSAYILAN ASİSTAN YAP") { requestAssistantRole() })
         box.addView(button("WAKE-WORD TESTİ · 'METEHAN'") { toggleWakeTest() })
-        box.addView(button("KAMERA · METEHAN GÖR") {
+        box.addView(button("KAMERA · ÜCRETSİZ YEREL GÖRÜ") {
             startActivity(Intent(this, CameraVisionActivity::class.java))
         })
 
         box.addView(TextView(this).apply {
-            text = "\nAI motoru"
+            text = "\nYerel AI modeli"
             textSize = 22f
             setTextColor(Color.rgb(237, 244, 255))
         })
         box.addView(TextView(this).apply {
-            text = "AI doğrudan uygulamanın içinde çalışır. API anahtarı Android Keystore ile cihazda şifrelenir."
+            text = "İlk kurulumda modeli bir kez indir. Sonrasında sohbet hesabı cihaz içinde yapılır. Model: ${LocalModelManager.MODEL_LABEL}."
             textSize = 14f
             setTextColor(Color.rgb(137, 152, 170))
-            setPadding(0, dp(6), 0, dp(10))
+            setPadding(0, dp(6), 0, dp(8))
         })
 
-        val apiKey = TextInputEditText(this).apply {
-            hint = "OpenAI API anahtarı"
-            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
-            setTextColor(Color.rgb(237, 244, 255))
-            setHintTextColor(Color.rgb(137, 152, 170))
+        modelStatus = TextView(this).apply {
+            textSize = 15f
+            setTextColor(Color.rgb(125, 211, 252))
+            setPadding(0, dp(4), 0, dp(8))
         }
-        val model = TextInputEditText(this).apply {
-            hint = "Model"
-            setText(SecurePrefs.model(this@MainActivity))
-            setTextColor(Color.rgb(237, 244, 255))
-            setHintTextColor(Color.rgb(137, 152, 170))
-        }
-        box.addView(apiKey)
-        box.addView(model)
+        box.addView(modelStatus)
 
-        box.addView(button("API AYARINI KAYDET VE TEST ET") {
-            val entered = apiKey.text?.toString()?.trim().orEmpty()
-            if (entered.isNotBlank()) SecurePrefs.saveApiKey(this, entered)
-            SecurePrefs.saveModel(this, model.text?.toString().orEmpty())
-            apiKey.setText("")
-
-            if (!SecurePrefs.hasApiKey(this)) {
-                Toast.makeText(this, "Önce API anahtarını gir", Toast.LENGTH_LONG).show()
-                updateStatus()
-            } else {
-                Thread {
-                    val msg = runCatching { StandaloneAiClient(this).testConnection() }
-                        .fold({ it }, { "API hatası: ${it.message}" })
+        val downloadButton = button("⬇ YEREL AI MODELİNİ İNDİR (~${LocalModelManager.APPROX_SIZE_MB} MB)") { }
+        downloadButton.setOnClickListener {
+            if (LocalModelManager.isReady(this)) {
+                Toast.makeText(this, "Yerel model zaten hazır", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            downloadButton.isEnabled = false
+            modelStatus.text = "Model indiriliyor… Wi-Fi önerilir."
+            LocalModelManager.download(
+                this,
+                onProgress = { percent, downloaded, total ->
                     runOnUiThread {
-                        Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
+                        val downMb = downloaded / 1024 / 1024
+                        val totalMb = if (total > 0) total / 1024 / 1024 else LocalModelManager.APPROX_SIZE_MB.toLong()
+                        modelStatus.text = "İndiriliyor: %$percent · $downMb / $totalMb MB"
+                    }
+                },
+                onComplete = { result ->
+                    runOnUiThread {
+                        downloadButton.isEnabled = true
+                        result.onSuccess {
+                            Toast.makeText(this, "Yerel AI modeli hazır ✓", Toast.LENGTH_LONG).show()
+                        }.onFailure {
+                            Toast.makeText(this, "Model indirme hatası: ${it.message}", Toast.LENGTH_LONG).show()
+                        }
                         updateStatus()
                     }
-                }.start()
+                },
+            )
+        }
+        box.addView(downloadButton)
+
+        box.addView(button("YEREL MODELİ SİL") {
+            AlertDialog.Builder(this)
+                .setTitle("Yerel modeli sil")
+                .setMessage("Yaklaşık ${LocalModelManager.APPROX_SIZE_MB} MB model dosyası silinecek. Telefon komutları çalışmaya devam eder; genel AI sohbeti için tekrar indirmen gerekir.")
+                .setNegativeButton("Vazgeç", null)
+                .setPositiveButton("Sil") { _, _ ->
+                    LocalModelManager.delete(this)
+                    updateStatus()
+                    Toast.makeText(this, "Yerel model silindi", Toast.LENGTH_SHORT).show()
+                }.show()
+        })
+
+        box.addView(button("🧪 SİSTEM TESTİ") {
+            val arm64 = Build.SUPPORTED_ABIS.any { it == "arm64-v8a" }
+            val text = buildString {
+                append("METEHAN V0.7 ÜCRETSİZ\n\n")
+                append("ARM64: ${if (arm64) "✓" else "UYUMSUZ"}\n")
+                append("Yerel model: ${if (LocalModelManager.isReady(this@MainActivity)) "✓ ${LocalModelManager.sizeMb(this@MainActivity)} MB" else "henüz yok"}\n")
+                append("Ücretli API bağımlılığı: YOK\n")
+                append("Telefon komut motoru: HAZIR\n")
+                append("Yerel hafıza: HAZIR\n")
+                append("Yerel wake-word: HAZIR")
             }
+            AlertDialog.Builder(this).setTitle("METEHAN Tanılama").setMessage(text).setPositiveButton("Tamam", null).show()
         })
 
         box.addView(button("YEREL SOHBET GEÇMİŞİNİ TEMİZLE") {
@@ -183,11 +220,16 @@ class MainActivity : AppCompatActivity() {
         val mic = ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
         val cam = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
         val role = getSystemService(RoleManager::class.java).isRoleHeld(RoleManager.ROLE_ASSISTANT)
-        status.text = "Standalone beyin: HAZIR ✓\n" +
-            "AI anahtarı: ${if (SecurePrefs.hasApiKey(this)) "AYARLI ✓" else "EKSİK"}\n" +
-            "Model: ${SecurePrefs.model(this)}\n" +
+        val modelReady = LocalModelManager.isReady(this)
+        status.text = "Ücretsiz yerel çekirdek: HAZIR ✓\n" +
+            "AI modeli: ${if (modelReady) "HAZIR ✓" else "İNDİRİLMELİ"}\n" +
             "Mikrofon: ${if (mic) "✓" else "—"}   Kamera: ${if (cam) "✓" else "—"}\n" +
             "Varsayılan asistan: ${if (role) "METEHAN ✓" else "henüz değil"}"
+        modelStatus.text = if (modelReady) {
+            "✓ ${LocalModelManager.MODEL_LABEL} · ${LocalModelManager.sizeMb(this)} MB · cihaz içinde"
+        } else {
+            "Model yok · telefon komutları çalışır, genel AI sohbeti için bir kez indir"
+        }
     }
 
     private fun dp(value: Int): Int = (value * resources.displayMetrics.density).toInt()

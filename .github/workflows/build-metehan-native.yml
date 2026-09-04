@@ -1,9 +1,9 @@
-name: Build METEHAN Native APK
+name: Build METEHAN Free Offline APK
 
 on:
   workflow_dispatch:
   push:
-    branches: [metehan-v0.6-standalone]
+    branches: [metehan-v0.6.1-runtime-fix]
     paths:
       - 'metehan-android/**'
       - '.github/workflows/build-metehan-native.yml'
@@ -11,7 +11,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -29,14 +29,17 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.13'
-      - name: Verify standalone source and logo
+      - name: Verify free offline source and logo
         run: |
           test -f metehan-android/app/src/main/res/drawable-nodpi/metehan_splash.jpg
           test -f metehan-android/app/src/main/res/drawable-nodpi/metehan_icon.jpg
-          grep -q "StandaloneAiClient" metehan-android/app/src/main/java/com/metehan/assistant/CommandCenterActivity.kt
-          grep -q "Standalone beyin" metehan-android/app/src/main/java/com/metehan/assistant/MainActivity.kt
-          if grep -q "CoreClient(this).*health" metehan-android/app/src/main/java/com/metehan/assistant/MainActivity.kt; then exit 1; fi
-          if grep -q "CorePrefs.coreUrl" metehan-android/app/src/main/java/com/metehan/assistant/MainActivity.kt; then exit 1; fi
+          grep -q "OfflineLlmClient" metehan-android/app/src/main/java/com/metehan/assistant/CommandCenterActivity.kt
+          grep -q "LocalModelManager" metehan-android/app/src/main/java/com/metehan/assistant/MainActivity.kt
+          grep -q "dev.ffmpegkit-maintained:llama-android" metehan-android/app/build.gradle.kts
+          grep -q "com.google.mlkit:image-labeling" metehan-android/app/build.gradle.kts
+          if grep -q "SecurePrefs.hasApiKey" metehan-android/app/src/main/java/com/metehan/assistant/MainActivity.kt; then exit 1; fi
+          if grep -q "StandaloneAiClient" metehan-android/app/src/main/java/com/metehan/assistant/CommandCenterActivity.kt; then exit 1; fi
+          if grep -q "StandaloneAiClient" metehan-android/app/src/main/java/com/metehan/assistant/CameraVisionActivity.kt; then exit 1; fi
       - name: Prepare local METEHAN wake-word model
         run: bash metehan-android/prepare_kws.sh
       - name: Build debug APK
@@ -45,11 +48,11 @@ jobs:
       - name: Stage APK
         run: |
           mkdir -p artifacts
-          cp metehan-android/app/build/outputs/apk/debug/app-debug.apk artifacts/Metehan-v0.6-standalone-debug.apk
-          sha256sum artifacts/Metehan-v0.6-standalone-debug.apk | tee artifacts/Metehan-v0.6-standalone-debug.apk.sha256
+          cp metehan-android/app/build/outputs/apk/debug/app-debug.apk artifacts/METEHAN-v0.7-FREE-OFFLINE.apk
+          sha256sum artifacts/METEHAN-v0.7-FREE-OFFLINE.apk | tee artifacts/METEHAN-v0.7-FREE-OFFLINE.apk.sha256
       - uses: actions/upload-artifact@v4
         with:
-          name: Metehan-v0.6-standalone-debug-apk
+          name: METEHAN-v0.7-free-offline-apk
           path: artifacts/*
           if-no-files-found: error
           retention-days: 30
